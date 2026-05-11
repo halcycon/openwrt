@@ -42,14 +42,25 @@ define Device/itus_shield-router
 endef
 TARGET_DEVICES += itus_shield-router
 
-# Disable PCIe on ER as it doesn't have PCIe peripherals and some devices lock up on initialization
-ER_CMDLINE:=-mtdparts=phys_mapped_flash:640k(boot0)ro,640k(boot1)ro,64k(eeprom)ro root=/dev/mmcblk0p2 rootfstype=squashfs,ext4 rootwait pcie_octeon.pcie_disable=1
-define Device/ubnt_edgerouter
+define Device/ubnt_e200
   DEVICE_VENDOR := Ubiquiti
+  DEVICE_PACKAGES += kmod-input-gpio-keys-polled kmod-leds-gpio kmod-hwmon-tmp421 kmod-phy-broadcom
+  KERNEL := kernel-bin | patch-cmdline | append-dtb-to-elf
+  KERNEL_DEPENDS := $(DTS_DIR)/cn61xx.dtsi $(DTS_DIR)/cn6120_ubnt_e200.dtsi $$(wildcard $(DTS_DIR)/$(DEVICE_DTS).dts)
+  # Disable PCIe on ER as it doesn't have PCIe peripherals and some devices lock up on initialization
+  # Set mtdparts= in built-in command line to a dummy to override the one given by U-Boot;
+  # this makes mtd use the `fixed-partitions` node in the device tree.
+  CMDLINE := root=/dev/mmcblk0p2 rootfstype=squashfs,ext4 rootwait pcie_octeon.pcie_disable=1 mtdparts=dummy:-
+endef
+
+# E201
+define Device/ubnt_edgerouter
+  $(Device/ubnt_e200)
   DEVICE_MODEL := EdgeRouter
-  BOARD_NAME := er
-  CMDLINE := $(ER_CMDLINE)
-  SUPPORTED_DEVICES += er
+  DEVICE_DTS := cn6120_ubnt_edgerouter
+  KERNEL_DEPENDS += $(DTS_DIR)/cn6120_ubnt_e20x.dtsi
+  BOARD_NAME := ubnt,er-8
+  SUPPORTED_DEVICES += ubnt,er-8 er
 endef
 TARGET_DEVICES += ubnt_edgerouter
 

@@ -1,0 +1,113 @@
+// SPDX-License-Identifier: GPL-2.0-or-later OR MIT
+
+#include "cn6120_ubnt_e200.dtsi"
+
+/ {
+	/* E201 */
+	compatible = "ubnt,er-8", "ubnt,e200", "cavium,cn61xx";
+	model = "Ubiquiti EdgeRouter (ER-8)";
+};
+
+&phy0 {
+	status = "okay";
+};
+
+&phy1 {
+	status = "okay";
+};
+
+&phy2 {
+	status = "okay";
+};
+
+&phy3 {
+	status = "okay";
+};
+
+&phy4 {
+	status = "okay";
+};
+
+&phy5 {
+	status = "okay";
+};
+
+&phy6 {
+	status = "okay";
+};
+
+&phy7 {
+	status = "okay";
+};
+
+&eth4 {
+	status = "okay";
+	phy-mode = "sgmii";
+	phy-handle = <&phy4>;
+	label = "eth0";
+	nvmem-cells = <&macaddr_eeprom_0 0>;
+	nvmem-cell-names = "mac-address";
+};
+
+&eth5 {
+	status = "okay";
+	phy-mode = "sgmii";
+	phy-handle = <&phy5>;
+	label = "eth1";
+	nvmem-cells = <&macaddr_eeprom_0 1>;
+	nvmem-cell-names = "mac-address";
+};
+
+&eth6 {
+	status = "okay";
+	phy-mode = "sgmii";
+	phy-handle = <&phy6>;
+	label = "eth2";
+	nvmem-cells = <&macaddr_eeprom_0 2>;
+	nvmem-cell-names = "mac-address";
+};
+
+&eth7 {
+	status = "okay";
+	phy-mode = "sgmii";
+	phy-handle = <&phy7>;
+	label = "eth3";
+	nvmem-cells = <&macaddr_eeprom_0 3>;
+	nvmem-cell-names = "mac-address";
+};
+
+&eth0 {
+	status = "okay";
+	phy-mode = "sgmii";
+	phy-handle = <&phy0>;
+	label = "eth5";
+	nvmem-cells = <&macaddr_eeprom_0 4>;
+	nvmem-cell-names = "mac-address";
+};
+
+&eth1 {
+	status = "okay";
+	phy-mode = "sgmii";
+	phy-handle = <&phy1>;
+	label = "eth6";
+	nvmem-cells = <&macaddr_eeprom_0 5>;
+	nvmem-cell-names = "mac-address";
+};
+
+&eth2 {
+	status = "okay";
+	phy-mode = "sgmii";
+	phy-handle = <&phy2>;
+	label = "eth7";
+	nvmem-cells = <&macaddr_eeprom_0 6>;
+	nvmem-cell-names = "mac-address";
+};
+
+&eth3 {
+	status = "okay";
+	phy-mode = "sgmii";
+	phy-handle = <&phy3>;
+	label = "eth8";
+	nvmem-cells = <&macaddr_eeprom_0 7>;
+	nvmem-cell-names = "mac-address";
+};

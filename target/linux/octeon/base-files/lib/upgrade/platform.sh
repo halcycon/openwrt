@@ -54,7 +54,7 @@ platform_copy_config() {
 	itus,shield-router)
 		platform_copy_config_helper /dev/mmcblk1p1 vfat
 		;;
-	er|\
+	ubnt,er-8|\
 	ubnt,edgerouter-4|\
 	ubnt,edgerouter-6p)
 		platform_copy_config_helper /dev/mmcblk0p1 vfat
@@ -127,7 +127,7 @@ platform_do_upgrade() {
 	fi
 	[ -b "${rootfs}" ] || return 1
 	case "$board" in
-	er | \
+	ubnt,er-8|\
 	ubnt,edgerouter-4 | \
 	ubnt,edgerouter-6p)
 		kernel=/dev/mmcblk0p1
@@ -160,12 +160,12 @@ platform_check_image() {
 	[ -n "$board_dir" ] || return 1
 
 	case "$board" in
-	er | \
-	itus,shield-router | \
+	ubnt,er-8|\
 	ubnt,edgerouter-4 | \
 	ubnt,edgerouter-6p | \
 	ubnt,erlite-3 | \
 	ubnt,usg | \
+	itus,shield-router | \
 	cisco,vedge1000)
 		local kernel_length=$(tar xf $tar_file $board_dir/kernel -O | wc -c 2> /dev/null)
 		local rootfs_length=$(tar xf $tar_file $board_dir/root -O | wc -c 2> /dev/null)

@@ -35,6 +35,7 @@ octeon_move_config() {
 		ubnt,erpro-8|\
 		ubnt,er-8|\
 		ubnt,ep-r8|\
+		ubnt,usg-pro-4|\
 		ubnt,edgerouter-4|\
 		ubnt,edgerouter-6p)
 			move_config "/dev/mmcblk0p1" "vfat"

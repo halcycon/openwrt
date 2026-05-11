@@ -57,6 +57,7 @@ platform_copy_config() {
 	ubnt,erpro-8|\
 	ubnt,er-8|\
 	ubnt,ep-r8|\
+	ubnt,usg-pro-4|\
 	ubnt,edgerouter-4|\
 	ubnt,edgerouter-6p)
 		platform_copy_config_helper /dev/mmcblk0p1 vfat
@@ -132,6 +133,7 @@ platform_do_upgrade() {
 	ubnt,erpro-8|\
 	ubnt,er-8|\
 	ubnt,ep-r8|\
+	ubnt,usg-pro-4|\
 	ubnt,edgerouter-4 | \
 	ubnt,edgerouter-6p)
 		kernel=/dev/mmcblk0p1
@@ -167,6 +169,7 @@ platform_check_image() {
 	ubnt,erpro-8|\
 	ubnt,er-8|\
 	ubnt,ep-r8|\
+	ubnt,usg-pro-4|\
 	ubnt,edgerouter-4 | \
 	ubnt,edgerouter-6p | \
 	ubnt,erlite-3 | \

@@ -89,6 +89,15 @@ define Device/ubnt_edgepoint-r8
 endef
 TARGET_DEVICES += ubnt_edgepoint-r8
 
+# E221
+define Device/ubnt_usg-pro-4
+  $(Device/ubnt_e200)
+  DEVICE_MODEL := UniFi Security Gateway PRO
+  DEVICE_DTS := cn6120_ubnt_usg-pro-4
+  DEVICE_PACKAGES += $(E200_SFP_PACKAGES)
+endef
+TARGET_DEVICES += ubnt_usg-pro-4
+
 define Device/ubnt_edgerouter-e300
   DEVICE_VENDOR := Ubiquiti
   DEVICE_PACKAGES += kmod-gpio-button-hotplug kmod-leds-gpio kmod-of-mdio kmod-sfp kmod-usb3 kmod-usb-dwc3 kmod-usb-storage-uas

@@ -2,6 +2,10 @@
 
 #include "cn6120_ubnt_e200.dtsi"
 
+&led_power {
+	color = <LED_COLOR_ID_WHITE>;
+};
+
 &phy0 {
 	status = "okay";
 };

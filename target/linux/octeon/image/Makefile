@@ -77,6 +77,18 @@ define Device/ubnt_edgerouter
 endef
 TARGET_DEVICES += ubnt_edgerouter
 
+# E202
+define Device/ubnt_edgepoint-r8
+  $(Device/ubnt_e200)
+  DEVICE_MODEL := EdgePoint R8
+  DEVICE_DTS := cn6120_ubnt_edgepoint-r8
+  DEVICE_PACKAGES += $(E200_SFP_PACKAGES) kmod-gpio-pca953x kmod-hwmon-ina2xx
+  KERNEL_DEPENDS += $(DTS_DIR)/cn6120_ubnt_e20x.dtsi
+  BOARD_NAME := ubnt,ep-r8
+  SUPPORTED_DEVICES += ubnt,ep-r8
+endef
+TARGET_DEVICES += ubnt_edgepoint-r8
+
 define Device/ubnt_edgerouter-e300
   DEVICE_VENDOR := Ubiquiti
   DEVICE_PACKAGES += kmod-gpio-button-hotplug kmod-leds-gpio kmod-of-mdio kmod-sfp kmod-usb3 kmod-usb-dwc3 kmod-usb-storage-uas

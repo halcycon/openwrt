@@ -1,0 +1,125 @@
+// SPDX-License-Identifier: GPL-2.0-or-later OR MIT
+
+#include "cn6120_ubnt_e20x.dtsi"
+
+/ {
+	/* E202 */
+	compatible = "ubnt,ep-r8", "ubnt,e200", "cavium,cn61xx";
+	model = "Ubiquiti EdgePoint R8 (EP-R8)";
+};
+
+&gpios {
+	eth1-poe-54v-4pair {
+		gpio-export,name = "eth1:poe:54v_4pair";
+		gpio-export,output = <0>;
+		gpios = <&gpio_poe 1 GPIO_ACTIVE_HIGH>;
+	};
+
+	eth1-poe-24v-4pair {
+		gpio-export,name = "eth1:poe:24v_4pair";
+		gpio-export,output = <0>;
+		gpios = <&gpio_poe 14 GPIO_ACTIVE_HIGH>;
+	};
+
+	eth2-poe-54v-4pair {
+		gpio-export,name = "eth2:poe:54v_4pair";
+		gpio-export,output = <0>;
+		gpios = <&gpio_poe 2 GPIO_ACTIVE_HIGH>;
+	};
+
+	eth2-poe-24v-4pair {
+		gpio-export,name = "eth2:poe:24v_4pair";
+		gpio-export,output = <0>;
+		gpios = <&gpio_poe 15 GPIO_ACTIVE_HIGH>;
+	};
+
+	eth3-poe-24v {
+		gpio-export,name = "eth3:poe:24v";
+		gpio-export,output = <0>;
+		gpios = <&gpio_poe 3 GPIO_ACTIVE_HIGH>;
+	};
+
+	eth4-poe-24v {
+		gpio-export,name = "eth4:poe:24v";
+		gpio-export,output = <0>;
+		gpios = <&gpio_poe 4 GPIO_ACTIVE_HIGH>;
+	};
+
+	eth5-poe-24v {
+		gpio-export,name = "eth5:poe:24v";
+		gpio-export,output = <0>;
+		gpios = <&gpio_poe 5 GPIO_ACTIVE_HIGH>;
+	};
+
+	eth6-poe-24v {
+		gpio-export,name = "eth6:poe:24v";
+		gpio-export,output = <0>;
+		gpios = <&gpio_poe 6 GPIO_ACTIVE_HIGH>;
+	};
+
+	eth7-poe-24v {
+		gpio-export,name = "eth7:poe:24v";
+		gpio-export,output = <0>;
+		gpios = <&gpio_poe 7 GPIO_ACTIVE_HIGH>;
+	};
+};
+
+&twsi0 {
+	power-sensor@40 {
+		compatible = "ti,ina260";
+		reg = <0x40>;
+		label = "vdc:in";
+	};
+
+	power-sensor@41 {
+		compatible = "ti,ina260";
+		reg = <0x41>;
+		label = "eth0:poe:in";
+	};
+
+	/* PoE-only ethernet port */
+	power-sensor@44 {
+		compatible = "ti,ina260";
+		reg = <0x44>;
+		label = "ethP:poe:in";
+	};
+};
+
+&twsi1 {
+	gpio_poe: pca9555@25 {
+		compatible = "nxp,pca9555";
+		reg = <0x25>;
+		gpio-controller;
+		#gpio-cells = <2>;
+	};
+};
+
+&sfp_i2c_mux {
+	status = "okay";
+};
+
+&sfp1 {
+	status = "okay";
+};
+
+&sfp2 {
+	status = "okay";
+};
+
+&phy2sfp {
+	status = "okay";
+};
+
+&phy3sfp {
+	status = "okay";
+};
+
+&eth2 {
+	phy-mode = "sgmii";
+	phy-handle = <&phy2sfp>;
+};
+
+&eth3 {
+	phy-mode = "sgmii";
+	phy-handle = <&phy3sfp>;
+};

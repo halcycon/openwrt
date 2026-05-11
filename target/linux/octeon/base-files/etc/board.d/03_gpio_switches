@@ -8,8 +8,23 @@ board_config_update
 
 case "$(board_name)" in
 ubnt,erpro-8|\
-ubnt,er-8)
+ubnt,er-8|\
+ubnt,ep-r8)
 	ucidef_add_gpio_switch "fan_control" "Fan control" "sys:fan_ctrl" "1"
+	;;
+esac
+
+case "$(board_name)" in
+ubnt,ep-r8)
+	ucidef_add_gpio_switch "eth1_poe_54v_4pair" "eth1 PoE (54V 4-pair)" "eth1:poe:54v_4pair"
+	ucidef_add_gpio_switch "eth1_poe_24v_4pair" "eth1 PoE (24V 4-pair)" "eth1:poe:24v_4pair"
+	ucidef_add_gpio_switch "eth2_poe_54v_4pair" "eth2 PoE (54V 4-pair)" "eth2:poe:54v_4pair"
+	ucidef_add_gpio_switch "eth2_poe_24v_4pair" "eth2 PoE (24V 4-pair)" "eth2:poe:24v_4pair"
+	ucidef_add_gpio_switch "eth3_poe_24v"       "eth3 PoE (24V)"        "eth3:poe:24v"
+	ucidef_add_gpio_switch "eth4_poe_24v"       "eth4 PoE (24V)"        "eth4:poe:24v"
+	ucidef_add_gpio_switch "eth5_poe_24v"       "eth5 PoE (24V)"        "eth5:poe:24v"
+	ucidef_add_gpio_switch "eth6_poe_24v"       "eth6 PoE (24V)"        "eth6:poe:24v"
+	ucidef_add_gpio_switch "eth7_poe_24v"       "eth7 PoE (24V)"        "eth7:poe:24v"
 	;;
 esac
 

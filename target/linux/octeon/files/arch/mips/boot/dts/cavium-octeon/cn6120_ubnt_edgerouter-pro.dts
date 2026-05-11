@@ -1,0 +1,39 @@
+// SPDX-License-Identifier: GPL-2.0-or-later OR MIT
+
+#include "cn6120_ubnt_e20x.dtsi"
+
+/ {
+	/* E200 */
+	compatible = "ubnt,erpro-8", "ubnt,e200", "cavium,cn61xx";
+	model = "Ubiquiti EdgeRouter PRO (ERPro-8)";
+};
+
+&sfp_i2c_mux {
+	status = "okay";
+};
+
+&sfp1 {
+	status = "okay";
+};
+
+&sfp2 {
+	status = "okay";
+};
+
+&phy2sfp {
+	status = "okay";
+};
+
+&phy3sfp {
+	status = "okay";
+};
+
+&eth2 {
+	phy-mode = "sgmii";
+	phy-handle = <&phy2sfp>;
+};
+
+&eth3 {
+	phy-mode = "sgmii";
+	phy-handle = <&phy3sfp>;
+};

@@ -54,6 +54,7 @@ platform_copy_config() {
 	itus,shield-router)
 		platform_copy_config_helper /dev/mmcblk1p1 vfat
 		;;
+	ubnt,erpro-8|\
 	ubnt,er-8|\
 	ubnt,edgerouter-4|\
 	ubnt,edgerouter-6p)
@@ -127,6 +128,7 @@ platform_do_upgrade() {
 	fi
 	[ -b "${rootfs}" ] || return 1
 	case "$board" in
+	ubnt,erpro-8|\
 	ubnt,er-8|\
 	ubnt,edgerouter-4 | \
 	ubnt,edgerouter-6p)
@@ -160,6 +162,7 @@ platform_check_image() {
 	[ -n "$board_dir" ] || return 1
 
 	case "$board" in
+	ubnt,erpro-8|\
 	ubnt,er-8|\
 	ubnt,edgerouter-4 | \
 	ubnt,edgerouter-6p | \

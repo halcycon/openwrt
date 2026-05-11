@@ -55,6 +55,40 @@
 			gpios = <&gpio 0x8 GPIO_ACTIVE_HIGH>;
 		};
 	};
+
+	sfp_i2c_mux: i2c-mux {
+		status = "disabled";
+		compatible = "i2c-mux-gpio";
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		i2c-parent = <&twsi1>;
+		mux-gpios = <&gpio 0xa GPIO_ACTIVE_HIGH>, <&gpio 0x9 GPIO_ACTIVE_HIGH>;
+
+		sfp1_i2c: i2c@1 {
+			reg = <1>;
+		};
+
+		sfp2_i2c: i2c@2 {
+			reg = <2>;
+		};
+	};
+
+	sfp1: sfp1 {
+		status = "disabled";
+		compatible = "sff,sfp";
+		i2c-bus = <&sfp1_i2c>;
+		mod-def0-gpios = <&gpio 0x1 GPIO_ACTIVE_LOW>;
+		tx-disable-gpios = <&gpio 0xc (GPIO_ACTIVE_HIGH | GPIO_OPEN_DRAIN)>;
+	};
+
+	sfp2: sfp2 {
+		status = "disabled";
+		compatible = "sff,sfp";
+		i2c-bus = <&sfp2_i2c>;
+		mod-def0-gpios = <&gpio 0x2 GPIO_ACTIVE_LOW>;
+		tx-disable-gpios = <&gpio 0xd (GPIO_ACTIVE_HIGH | GPIO_OPEN_DRAIN)>;
+	};
 };
 
 &bootbus {
@@ -258,6 +292,26 @@
 		compatible = "broadcom,bcm", "ethernet-phy-ieee802.3-c22";
 		reg = <3>;
 		interrupt-parent = <&gpio>;
+	};
+};
+
+&smi1 {
+	status = "okay";
+
+	phy2sfp: ethernet-phy@0 {
+		status = "disabled";
+		compatible = "broadcom,bcm", "ethernet-phy-ieee802.3-c22";
+		reg = <0>;
+		interrupt-parent = <&gpio>;
+		sfp = <&sfp1>;
+	};
+
+	phy3sfp: ethernet-phy@1 {
+		status = "disabled";
+		compatible = "broadcom,bcm", "ethernet-phy-ieee802.3-c22";
+		reg = <1>;
+		interrupt-parent = <&gpio>;
+		sfp = <&sfp2>;
 	};
 };
 

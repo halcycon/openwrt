@@ -1,0 +1,10 @@
+--- a/arch/mips/cavium-octeon/flash_setup.c
++++ b/arch/mips/cavium-octeon/flash_setup.c
+@@ -22,6 +22,7 @@ static struct map_info flash_map;
+ static struct mtd_info *mymtd;
+ static const char *part_probe_types[] = {
+ 	"cmdlinepart",
++	"ofpart",
+ #ifdef CONFIG_MTD_REDBOOT_PARTS
+ 	"RedBoot",
+ #endif

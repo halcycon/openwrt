@@ -2,19 +2,29 @@
 
 Used by [`.github/workflows/build-usg-pro-4.yml`](../.github/workflows/build-usg-pro-4.yml).
 
+## Variants
+
+| Seed | Variant | Includes (beyond device defaults + offload) |
+|------|---------|-----------------------------------------------|
+| `config.seed` | **lean** | `conntrack`, `tcpdump` — minimal verify toolkit |
+| `config-router.seed` | **router** | lean + LuCI (HTTPS) + WireGuard |
+
+Same device profile: `ubnt_usg-pro-4`. Full comparison, Release asset
+names, and how to point a live USG’s `apk` at those packages:
+[`AGENTS.md`](../AGENTS.md#image-variants-lean-vs-router).
+
+## Files
+
 | File | Purpose |
 |------|---------|
-| `config.seed` | Lean image: offload + conntrack/tcpdump |
-| `config-router.seed` | Lean + LuCI (HTTPS) + WireGuard |
-| `feeds.conf` | `packages` + `luci` feeds (no bare `#` lines) |
+| `config.seed` | Lean image seed |
+| `config-router.seed` | Router image seed |
+| `feeds.conf` | `packages` + `luci` only (no bare `#` lines) |
 
-This repository **is** the OpenWrt tree (unlike the ERLite overlay repo), so the
-workflow builds in-place: seeds → `make defconfig` → `make`. Staging hooks and
-`kmod-octeon-flowtable` are already in-tree.
+## Triggers
 
-Triggers:
+- `workflow_dispatch` (from the **default** branch) → artifacts
+- tag `v*` → build both variants + GitHub Release (images + `.apk` tarballs)
 
-- `workflow_dispatch` (must be run from the default branch)
-- push of tags matching `v*` → build both variants and publish a GitHub Release
-
+This repository **is** the OpenWrt tree, so the workflow builds in-place.
 Adapted from [packerlschupfer/octeon-flowtable](https://github.com/packerlschupfer/octeon-flowtable) CI.

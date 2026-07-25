@@ -41,10 +41,12 @@ After enabling offload, run the **WQE↔netdev port-map check** once per
 interface class (RJ45 vs SFP) documented in AGENTS.md — that is the
 USG-PRO-4-specific security-critical validation.
 
-Preferred distribution: GitHub Actions workflow **build-usg-pro-4**
-(`ci/*.seed`) builds firmware **plus matching `.apk`s** and attaches them
-to a Release on `v*` tags (or upload artifacts on manual runs). See
-[`AGENTS.md`](AGENTS.md#ci--releases) and [`ci/README.md`](ci/README.md).
+Preferred distribution: GitHub Actions **build-usg-pro-4** builds two
+variants — **lean** (offload + conntrack/tcpdump) and **router** (lean +
+LuCI + WireGuard) — and attaches firmware plus matching `.apk` tarballs
+to a Release on `v*` tags. How variants differ, how Release assets map,
+and how to point a live USG’s `apk` at them:
+[`AGENTS.md`](AGENTS.md#image-variants-lean-vs-router) · [`ci/README.md`](ci/README.md).
 
 ### What this repository does *not* ship
 

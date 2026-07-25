@@ -275,6 +275,28 @@ Remaining items:
 5. **Unsupported actions refused** at install time (never silently ignored).
 6. **Stale-entry eviction** + orphan GC after `fw4 reload`.
 
+### Image variants: lean vs router
+
+CI builds two **profiles** of the same device (`ubnt_usg-pro-4`). Both
+include hardware offload; they differ only in userspace packages.
+
+| | **lean** (`ci/config.seed`) | **router** (`ci/config-router.seed`) |
+|--|-----------------------------|--------------------------------------|
+| Target | USG-PRO-4 | USG-PRO-4 |
+| Flow offload | `kmod-octeon-flowtable` + nft/nf-flow | same |
+| Debug / verify | `conntrack`, `tcpdump` | same |
+| Web UI | no | LuCI + HTTPS (`luci`, `luci-ssl`) |
+| VPN | no | WireGuard + LuCI proto |
+| Typical use | Minimal flash; add only what you need | Turnkey home/gateway image |
+| Size / attack surface | Smaller | Larger |
+
+Both still get the usual OpenWrt base that `make defconfig` pulls in for
+the device (firewall4, dnsmasq, etc.). Neither enables `CONFIG_ALL`.
+
+Pick **lean** if you want a clean base or already have your own package
+set. Pick **router** if you want LuCI and WireGuard without a second
+install step.
+
 ### CI / releases
 
 Workflow: [`.github/workflows/build-usg-pro-4.yml`](.github/workflows/build-usg-pro-4.yml)
@@ -283,19 +305,143 @@ Seeds / feeds: [`ci/`](ci/).
 | Trigger | Result |
 |---------|--------|
 | Actions → **build-usg-pro-4** → Run workflow | Artifacts (`lean` / `router`) |
-| `git tag vX.Y.Z && git push origin vX.Y.Z` | Same build + GitHub Release with images + `.apk` tarballs |
+| `git tag vX.Y.Z && git push origin vX.Y.Z` | Same build + GitHub Release |
 
-Manual run options: `ubuntu-24.04` or `self-hosted` runner; variant
+Manual run options: `ubuntu-24.04` or `self-hosted`; variant
 `both` / `lean` / `router`.
 
-Gotchas:
-
-1. No `python3-distutils` on Ubuntu 24.04 — seed uses `python3-setuptools`.
-2. No bare `#` lines in `ci/feeds.conf`.
-3. `workflow_dispatch` only appears for workflows on the **default**
-   branch (`usg-pro-4/factory-macs`).
+Gotchas: no `python3-distutils` on 24.04 (we use `python3-setuptools`);
+no bare `#` in `ci/feeds.conf`; `workflow_dispatch` only for workflows
+on the default branch.
 
 Adapted from [packerlschupfer/octeon-flowtable CI](https://github.com/packerlschupfer/octeon-flowtable/tree/main/ci).
+
+#### What a Release contains (asset map)
+
+Tag `v1.2.3` → Release **USG-PRO-4 v1.2.3** with assets prefixed by variant:
+
+| Asset pattern | What it is |
+|---------------|------------|
+| `lean-openwrt-octeon-generic-ubnt_usg-pro-4-squashfs-sysupgrade.tar` | Flashable lean firmware |
+| `lean-openwrt-octeon-generic-ubnt_usg-pro-4-initramfs-kernel.bin` | Initramfs kernel (recovery / netboot) |
+| `lean-*-kmod-octeon-flowtable-*.apk` | Offload kmod alone (same kernel as that image) |
+| `lean-target-packages.tar.gz` | All target packages for that build (`packages.adb` + `.apk`s, incl. kmods) |
+| `lean-packages.tar.gz` | Feed packages built for that image (`base` / `luci` / `packages` / …) |
+| `lean-sha256sums` / `sha256sums-lean.txt` | Checksums |
+| `router-…` | Same set for the router profile |
+
+**Important:** `lean-*` and `router-*` are **different images** (and may
+share a kernel ver string but must be treated as separate builds). Only
+install `.apk`s from the **same Release tag and same variant** as the
+firmware running on the box — otherwise kmods will refuse to load
+(vermagic / hash mismatch).
+
+GitHub Releases are a file drop, not an apk HTTP feed by themselves.
+Use one of the install methods below.
+
+### Installing packages from a Release onto a live USG
+
+OpenWrt on this tree uses **`apk`** (`.apk` + `packages.adb`), not opkg.
+
+#### Method A — flash the whole image (usual path)
+
+```text
+# on the USG, after copying the sysupgrade tarball to /tmp
+sysupgrade -n /tmp/lean-openwrt-octeon-generic-ubnt_usg-pro-4-squashfs-sysupgrade.tar
+```
+
+(`-n` keeps config off; omit `-n` to try preserving config.) This is the
+safest way to get a matching kernel + offload module.
+
+#### Method B — sideload a single `.apk` from the Release
+
+Use when the box already runs firmware from **that same** `v*` / variant
+and you only need one package (e.g. you flashed lean and later want a
+package that was built into `lean-packages.tar.gz`).
+
+```text
+# on a workstation: download from the Release, scp to the USG, then:
+cd /tmp
+apk add --allow-untrusted ./kmod-octeon-flowtable-*.apk
+```
+
+`--allow-untrusted` is required unless you install the build’s signing
+public key under `/etc/apk/keys/`. Prefer verifying `sha256sums-*.txt`
+before install.
+
+#### Method C — use the Release tarball as a local feed
+
+```text
+# on the USG
+cd /tmp
+tar -xzf lean-target-packages.tar.gz    # creates ./packages/ with packages.adb
+tar -xzf lean-packages.tar.gz           # creates ./packages/<feed>/…
+
+# Point apk at the indexes (file:// URLs). Adjust paths to match the tarball layout:
+mkdir -p /etc/apk/repositories.d
+cat >> /etc/apk/repositories.d/customfeeds.list <<'EOF'
+file:///tmp/packages/packages.adb
+file:///tmp/packages/base/packages.adb
+file:///tmp/packages/packages/packages.adb
+file:///tmp/packages/luci/packages.adb
+EOF
+
+apk update
+apk add --allow-untrusted conntrack tcpdump
+# or: apk add --allow-untrusted kmod-octeon-flowtable
+```
+
+Exact subpaths depend on tarball layout (`target-packages` is flat under
+`packages/`; `packages.tar.gz` nests `packages/base`, `packages/luci`,
+…). After `tar -tzf … | head`, copy the `packages.adb` paths you see.
+
+#### Method D — HTTP feed (Pages / R2) for `apk update` over the network
+
+Releases alone are awkward for Method D (no stable directory URL with
+`packages.adb`). To let every USG run `apk update` against your builds:
+
+1. Publish the **unpacked** feed trees from a Release (contents of
+   `*-target-packages.tar.gz` and `*-packages.tar.gz`) to GitHub Pages or
+   Cloudflare R2 so these URLs exist, for example:
+   - `https://<you>.github.io/usg-apk/v1.2.3/lean/targets/packages.adb`
+   - `https://<you>.github.io/usg-apk/v1.2.3/lean/base/packages.adb`
+   - … same for `packages/`, `luci/`, etc.
+2. On the device:
+
+```text
+# Install the repo signing key if you sign indexes (recommended).
+# Otherwise every apk add needs --allow-untrusted.
+# cp usg-apk.pem /etc/apk/keys/
+
+cat > /etc/apk/repositories.d/customfeeds.list <<'EOF'
+https://<you>.github.io/usg-apk/v1.2.3/lean/targets/packages.adb
+https://<you>.github.io/usg-apk/v1.2.3/lean/base/packages.adb
+https://<you>.github.io/usg-apk/v1.2.3/lean/packages/packages.adb
+https://<you>.github.io/usg-apk/v1.2.3/lean/luci/packages.adb
+EOF
+
+apk update
+apk add kmod-octeon-flowtable
+```
+
+Pin the **version directory** (`v1.2.3/lean`) to the firmware you
+flashed. Do not mix lean packages onto a router image (or the reverse),
+and do not point a device at a newer tag’s kmods while running an older
+kernel.
+
+`customfeeds.list` is the supported conffile (survives upgrades better
+than editing dist feeds). See also
+[OpenWrt apk docs](https://openwrt.org/docs/guide-user/additional-software/apk).
+
+#### Kernel modules — special rule
+
+`kmod-*` packages (including `kmod-octeon-flowtable`) only load on the
+kernel they were built with. Practical policy:
+
+- Flash image from Release `vX` variant `lean` → only install kmods from
+  `vX` / `lean-*` assets.
+- Userspace packages from the same build are usually fine; when in doubt,
+  stay on the same Release tag.
 
 ## What must not be committed / uploaded to GitHub
 

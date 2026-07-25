@@ -1,5 +1,45 @@
 ![OpenWrt logo](include/logo.png)
 
+## USG-PRO-4 fork (this mirror)
+
+> SPDX-License-Identifier: MIT *(this section only — see [License](#license))*
+
+This GitHub tree is maintained for the **Ubiquiti UniFi Security Gateway
+Pro 4** (`ubnt,usg-pro-4` / `UBNT_E220`, Cavium CN6120). It is **not** a
+drop-in replacement for official OpenWrt releases.
+
+### Credits
+
+- **Device support** — [Shiz/openwrt](https://codeberg.org/Shiz/openwrt)
+  on Codeberg (`device/ubnt-e200` and related branches). This mirror tracks
+  that work via the `upstream` remote.
+- **Hardware flow offload** — port of
+  [packerlschupfer/octeon-flowtable](https://github.com/packerlschupfer/octeon-flowtable),
+  a clean-room nftables flow-offload backend originally for Octeon+ CN50xx
+  (EdgeRouter Lite 3). Adapted here for CN61xx on the USG-PRO-4.
+
+Agent-oriented build/config notes live in [`AGENTS.md`](AGENTS.md).
+
+### Hardware flow offload (short)
+
+1. Flash an image that includes `kmod-octeon-flowtable` (default for this
+   device’s `DEVICE_PACKAGES`).
+2. In `/etc/config/firewall` → `config defaults`, set
+   `flow_offloading` and `flow_offloading_hw` to `1`, then `fw4 reload`.
+3. Confirm with `conntrack -L | grep HW_OFFLOAD` and a rising
+   `/sys/module/octeon_flowtable/parameters/tx_ok` under load.
+
+Tunables: `/etc/config/octeon-flowtable`. Details and hardening notes:
+[`AGENTS.md`](AGENTS.md).
+
+### What this repository does *not* ship
+
+Do not expect (and do not commit) build products: `bin/`, `build_dir/`,
+`staging_dir/`, `dl/`, local `.config*`, signing keys, or prebuilt
+`.ipk`/`.apk`/`.ko` artifacts. Those paths are gitignored.
+
+---
+
 OpenWrt Project is a Linux operating system targeting embedded devices. Instead
 of trying to create a single, static firmware, OpenWrt provides a fully
 writable filesystem with package management. This frees you from the
@@ -105,4 +145,16 @@ For a list of supported devices see the [OpenWrt Hardware Database](https://open
 
 ## License
 
-OpenWrt is licensed under GPL-2.0
+**OpenWrt** in this tree remains **GPL-2.0-only** — see [`COPYING`](COPYING)
+and [`LICENSES/GPL-2.0`](LICENSES/GPL-2.0). Contributions to OpenWrt code
+are subject to that license; this mirror does not relicense the OpenWrt
+Project or the Linux kernel.
+
+**`kmod-octeon-flowtable`** is **GPL-2.0** (Linux kernel module), following
+[packerlschupfer/octeon-flowtable](https://github.com/packerlschupfer/octeon-flowtable).
+See [`package/kernel/octeon-flowtable/NOTICE`](package/kernel/octeon-flowtable/NOTICE).
+
+**Original documentation** unique to this mirror — the USG-PRO-4 section
+above and [`AGENTS.md`](AGENTS.md) — is available under the **MIT** License
+([`LICENSES/MIT`](LICENSES/MIT)). MIT applies only to that documentation,
+not to OpenWrt sources or the flowtable driver.

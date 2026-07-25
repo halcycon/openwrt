@@ -1,10 +1,15 @@
 *.o
+*.ko
+*.mod
+*.mod.c
+*.cmd
 .DS_Store
 .*.swp
 /env
 /dl
 /.config
 /.config.old
+/.config.*
 /.toolchain_build_ver
 /bin
 /build_dir
@@ -35,3 +40,8 @@ git-src
 .cproject
 .ccache
 .vscode*
+# Local scratch / session dumps
+*-session.txt
+*.log
+# Accidental nested clones under package/ (keep out of this tree)
+/package/luci-theme-proton2025/

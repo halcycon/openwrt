@@ -1,3 +1,19 @@
-octeon_flowtable is GPL-2.0.
-Ported from https://github.com/packerlschupfer/octeon-flowtable
-Clean-room reimplementation; no Ubiquiti binary or Cavium SDK code.
+octeon-flowtable — nftables flow offload for Cavium Octeon (CN50xx / CN61xx)
+
+License: GPL-2.0
+SPDX-License-Identifier: GPL-2.0
+
+This package is a Linux kernel module and is licensed under GPL-2.0,
+consistent with the Linux kernel and with the upstream project:
+
+  https://github.com/packerlschupfer/octeon-flowtable
+
+That project is a clean-room reimplementation for Octeon+ (CN50xx /
+EdgeRouter Lite 3). This tree ports it for CN6120 (USG-PRO-4) OpenWrt.
+
+Device/board support for the USG-PRO-4 in this OpenWrt tree is based on:
+
+  https://codeberg.org/Shiz/openwrt
+
+No Ubiquiti binary modules and no Cavium SDK code are included.
+OpenWrt itself remains GPL-2.0-only (see the repository root COPYING).

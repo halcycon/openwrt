@@ -4,14 +4,15 @@
  * packet complex (CN50xx Octeon+ and CN61xx Octeon II), built on the
  * mainline staging octeon_ethernet driver.
  *
- * Clean-room reimplementation (origin: github.com/packerlschupfer/octeon-flowtable).
+ * Clean-room reimplementation:
+ *   https://github.com/packerlschupfer/octeon-flowtable
  * NO code, struct layouts, or constants taken from the Ubiquiti binary module
  * or the Cavium SDK. The hardware model is derived from the GPL headers in
  * arch/mips/include/asm/octeon/. Ported for USG-PRO-4 (CN6120 / UBNT_E220);
  * CN61xx uses the same cn38xx-style WQE layout as CN50xx (PKND/CN68XX_WQE
  * are CN68-only).
  *
- * Copyright (c) 2026 (cavium-offload-port project)
+ * Copyright (c) 2026 packerlschupfer / octeon-flowtable contributors
  *
  * ============================ MILESTONE 2 ============================
  * First real hardware fast path. On FLOW_CLS_REPLACE we parse the offload
@@ -1706,4 +1707,4 @@ module_exit(octeon_ft_exit);
 
 MODULE_LICENSE("GPL");
 MODULE_DESCRIPTION("nftables flow offload for Cavium Octeon CN50xx/CN61xx");
-MODULE_AUTHOR("cavium-offload-port");
+MODULE_AUTHOR("packerlschupfer (octeon-flowtable); USG-PRO-4 port");

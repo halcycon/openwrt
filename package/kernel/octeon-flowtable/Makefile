@@ -1,6 +1,7 @@
 #
-# Copyright (c) 2026 cavium-offload-port / octeon-flowtable
-# Ported for Ubiquiti USG-PRO-4 (CN6120) OpenWrt tree.
+# Copyright (c) 2026 packerlschupfer / octeon-flowtable contributors
+# Ported for Ubiquiti USG-PRO-4 (CN6120) from:
+#   https://github.com/packerlschupfer/octeon-flowtable
 #
 # SPDX-License-Identifier: GPL-2.0
 #
@@ -11,7 +12,7 @@ include $(INCLUDE_DIR)/kernel.mk
 PKG_NAME:=octeon-flowtable
 PKG_RELEASE:=1
 PKG_LICENSE:=GPL-2.0
-PKG_MAINTAINER:=USG-PRO-4 OpenWrt
+PKG_MAINTAINER:=USG-PRO-4 OpenWrt <https://github.com/halcycon/openwrt>
 
 include $(INCLUDE_DIR)/package.mk
 

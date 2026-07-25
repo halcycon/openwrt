@@ -27,7 +27,7 @@ Agent / branch notes: [`AGENTS.md`](AGENTS.md).
 ## Quick start
 
 1. Download a Release for your tag (e.g.
-   [v25.12-usg.1](https://github.com/halcycon/openwrt/releases/tag/v25.12-usg.1))
+   [v25.12-usg.2](https://github.com/halcycon/openwrt/releases/tag/v25.12-usg.2))
    — **lean** (minimal) or **router** (LuCI + VPN + gateway apps).
 2. Flash the `*-ubnt_usg-pro-4-squashfs-sysupgrade.tar` image.
 3. Enable `flow_offloading` + `flow_offloading_hw` in firewall defaults;
@@ -54,9 +54,10 @@ stock OpenWrt `main`.
 ## Upstream OpenWrt
 
 The tree retains full OpenWrt history and tracks Codeberg via `upstream`.
-Generic OpenWrt documentation (build system, packages, support channels)
-lives at [openwrt.org](https://openwrt.org/) and in upstream’s own
-[README](https://github.com/openwrt/openwrt/blob/main/README.md).
+The classic project README (About, download, build requirements, support)
+is preserved here: **[`docs/OPENWRT-README.md`](docs/OPENWRT-README.md)**.
+Live upstream copy:
+[openwrt/openwrt README](https://github.com/openwrt/openwrt/blob/main/README.md).
 
 Sunshine!
 

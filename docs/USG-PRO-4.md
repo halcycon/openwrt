@@ -46,7 +46,7 @@ Examples:
 | Tag | Meaning |
 |-----|---------|
 | `v25.12-usg.1` | First public USG build based on the OpenWrt **25.12** line |
-| `v25.12-usg.2` | Second iteration on the same line (docs, MAC fix, offload tweak, …) |
+| `v25.12-usg.2` | Signed apks; expanded **router** seed (Proton2025, Tailscale, mwan3/…); RJ45 port-map logged |
 | `v26.xx-usg.1` | First build after rebasing onto a newer OpenWrt line |
 
 Rules:
@@ -88,18 +88,20 @@ octeon-flowtable: in-tree port of packerlschupfer/octeon-flowtable
 Same device profile. Neither is `CONFIG_ALL` (that would pull every feed
 package).
 
-### What `v25.12-usg.1` actually shipped
+### What each tag shipped
 
-Measured from the Release tarballs:
+**`v25.12-usg.1`** (measured from Release tarballs):
 
 - **lean:** ~65 feed `.apk`s — base system + conntrack/tcpdump toolkit
   (no LuCI).
-- **router (that tag):** ~99 feed `.apk`s — lean set **plus** the LuCI
-  stack (bootstrap theme), WireGuard userspace, and their dependencies.
-  **Not** yet Proton2025 / mwan3 / adblock / etc. (those land in the
-  next tag after the expanded `ci/config-router.seed`).
+- **router:** ~99 feed `.apk`s — lean set **plus** LuCI (bootstrap) +
+  WireGuard. No Proton2025 / Tailscale / mwan3 / adblock yet; apks were
+  unsigned.
 
-Router is “LuCI + WireGuard (+ deps)”, not a mysterious second OS.
+**`v25.12-usg.2`** (this tag): rebuild with apk signing key, expanded
+`ci/config-router.seed` (Proton2025, Tailscale, mwan3/pbr/adblock-fast/
+https-dns-proxy, htop/nano/curl/iperf3), and docs front-page updates.
+Hardware validation: GW1 **RJ45** WQE↔netdev pass logged; SFP still open.
 
 ### Recommended extras (now in router seed)
 
@@ -218,9 +220,9 @@ echo 0 > /sys/module/octeon_flowtable/parameters/verbose
 
 | Date | Unit | Path | `tx_ok` Δ | `r_miss` | `r_ipoff` | `tx_fail` / `aqm_drops` | Result |
 |------|------|------|-----------|----------|-----------|-------------------------|--------|
-| 2026-07-25 | GW1 | forwarded load (iperf3); confirm RJ45 vs SFP class | +180 874 (470 079 456 → 470 260 330) | rose (background OK) | 0 | 0 / 0 | **Pass** (fast path engaged) |
+| 2026-07-25 | GW1 | **RJ45** only — forwarded load (iperf3) | +180 874 (470 079 456 → 470 260 330) | rose (background OK) | 0 | 0 / 0 | **Pass** (fast path engaged) |
 
-Repeat for the other interface class (RJ45 vs SFP) if only one was tested.
+SFP still needs the same check on GW1 (or another unit).
 
 ### 3. Security / hardening checklist
 
@@ -236,11 +238,11 @@ CI: [build-usg-pro-4.yml](../.github/workflows/build-usg-pro-4.yml).
 | Trigger | Output |
 |---------|--------|
 | Actions → Run workflow | Artifacts |
-| `git tag v25.12-usg.1 && git push origin v25.12-usg.1` | GitHub Release |
+| `git tag v25.12-usg.2 && git push origin v25.12-usg.2` | GitHub Release |
 
 ### Release asset map
 
-For tag `v25.12-usg.1`, assets are prefixed `lean-` or `router-`:
+For tag `v25.12-usg.2` (same layout as `.1`), assets are prefixed `lean-` or `router-`:
 
 | Pattern | Contents |
 |---------|----------|

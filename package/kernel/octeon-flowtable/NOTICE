@@ -1,0 +1,3 @@
+octeon_flowtable is GPL-2.0.
+Ported from https://github.com/packerlschupfer/octeon-flowtable
+Clean-room reimplementation; no Ubiquiti binary or Cavium SDK code.

@@ -35,3 +35,43 @@ The development-branch device configuration symbol is:
 CONFIG_TARGET_octeon=y
 CONFIG_TARGET_octeon_generic=y
 CONFIG_TARGET_octeon_generic_DEVICE_ubnt_usg-pro-4=y
+```
+
+## Hardware flow offload (octeon-flowtable)
+
+The USG-PRO-4 SoC is a Cavium CN6120 (Octeon II). Images include
+`kmod-octeon-flowtable`, a clean-room nftables flow-offload backend
+ported from https://github.com/packerlschupfer/octeon-flowtable (originally
+for CN50xx; CN61xx shares the same WQE/PIP/PKO model).
+
+Kernel requirements (already applied in this tree):
+
+- Staging hooks: `target/linux/octeon/patches-*/710-octeon-flowtable-hooks.patch`
+- `CONFIG_CAVIUM_OCTEON_CVMSEG_SIZE=2`
+- Boot cmdline includes `receive_group_order=1` (POW group spreading)
+
+### Enable on device
+
+In `/etc/config/firewall` under `config defaults`:
+
+```text
+option flow_offloading '1'
+option flow_offloading_hw '1'
+```
+
+Then `fw4 reload`. Verify established forwarded flows show hardware
+offload:
+
+```text
+conntrack -L | grep HW_OFFLOAD
+```
+
+Confirm the staging hook is present after a kernel rebuild:
+
+```text
+grep cvm_oct_register_rx_hook /proc/kallsyms
+```
+
+Prove fast-path engagement via the module `tx_ok` counter delta under
+load (software forwarding can also hit GbE line rate when idle). Module
+tunables live in `/etc/config/octeon-flowtable`.

@@ -94,7 +94,10 @@ define Device/ubnt_usg-pro-4
   $(Device/ubnt_e200)
   DEVICE_MODEL := UniFi Security Gateway PRO
   DEVICE_DTS := cn6120_ubnt_usg-pro-4
-  DEVICE_PACKAGES += $(E200_SFP_PACKAGES)
+  DEVICE_PACKAGES += $(E200_SFP_PACKAGES) kmod-octeon-flowtable
+  # POW group spreading (hardware RSS onto both cores) for flow offload.
+  # receive_group_order is a built-in octeon_ethernet module_param.
+  CMDLINE := root=/dev/mmcblk0p2 rootfstype=squashfs,ext4 rootwait pcie_octeon.pcie_disable=1 mtdparts=dummy:- receive_group_order=1
 endef
 TARGET_DEVICES += ubnt_usg-pro-4
 

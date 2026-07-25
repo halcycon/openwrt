@@ -18,35 +18,24 @@ drop-in replacement for official OpenWrt releases.
   a clean-room nftables flow-offload backend originally for Octeon+ CN50xx
   (EdgeRouter Lite 3). Adapted here for CN61xx on the USG-PRO-4.
 
-Agent-oriented build/config notes live in [`AGENTS.md`](AGENTS.md).
+**Docs:** [`docs/USG-PRO-4.md`](docs/USG-PRO-4.md) (changes, versioning,
+testing, packages, GitHub Pages). Agent notes: [`AGENTS.md`](AGENTS.md).
 
-**Branch to use:** `usg-pro-4/factory-macs` (integration tip: factory
-EEPROM MACs + flow offload + docs). Do **not** merge that work into
-`main` — `main` tracks stock OpenWrt (`upstream/main`). Details:
-[`AGENTS.md` → Branches](AGENTS.md#branches--do-not-merge-into-main).
+**Branch:** `usg-pro-4/factory-macs` — do **not** merge into `main`
+(`main` tracks stock OpenWrt).
 
-### Hardware flow offload (short)
+### Quick start
 
-1. Flash an image that includes `kmod-octeon-flowtable` (default for this
-   device’s `DEVICE_PACKAGES`).
-2. In `/etc/config/firewall` → `config defaults`, set
-   `flow_offloading` and `flow_offloading_hw` to `1`, then `fw4 reload`.
-3. Confirm with `conntrack -L | grep HW_OFFLOAD` and a rising
-   `/sys/module/octeon_flowtable/parameters/tx_ok` under load.
+1. Flash a **lean** or **router** image from a Release (tags look like
+   `v25.12-usg.1` — see [versioning](docs/USG-PRO-4.md#versioning)).
+2. Set `flow_offloading` + `flow_offloading_hw` in firewall defaults;
+   `fw4 reload`.
+3. Run the [WQE↔netdev port-map check](docs/USG-PRO-4.md#2-guided-check--wqe--netdev-port-map-required-once)
+   once on RJ45 and once on SFP.
+4. Optional: point `apk` at Release tarballs or a
+   [GitHub Pages feed](docs/USG-PRO-4.md#publishing-apks-on-github-pages).
 
-Tunables: `/etc/config/octeon-flowtable`. Details and hardening notes:
-[`AGENTS.md`](AGENTS.md).
-
-After enabling offload, run the **WQE↔netdev port-map check** once per
-interface class (RJ45 vs SFP) documented in AGENTS.md — that is the
-USG-PRO-4-specific security-critical validation.
-
-Preferred distribution: GitHub Actions **build-usg-pro-4** builds two
-variants — **lean** (offload + conntrack/tcpdump) and **router** (lean +
-LuCI + WireGuard) — and attaches firmware plus matching `.apk` tarballs
-to a Release on `v*` tags. How variants differ, how Release assets map,
-and how to point a live USG’s `apk` at them:
-[`AGENTS.md`](AGENTS.md#image-variants-lean-vs-router) · [`ci/README.md`](ci/README.md).
+CI: **build-usg-pro-4** (`ci/*.seed`) · [`ci/README.md`](ci/README.md).
 
 ### What this repository does *not* ship
 

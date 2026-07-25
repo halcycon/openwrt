@@ -9,9 +9,9 @@ Used by [`.github/workflows/build-usg-pro-4.yml`](../.github/workflows/build-usg
 | `config.seed` | **lean** | `conntrack`, `tcpdump` — minimal verify toolkit |
 | `config-router.seed` | **router** | lean + LuCI (HTTPS) + WireGuard |
 
-Same device profile: `ubnt_usg-pro-4`. Full comparison, Release asset
-names, and how to point a live USG’s `apk` at those packages:
-[`AGENTS.md`](../AGENTS.md#image-variants-lean-vs-router).
+Same device profile: `ubnt_usg-pro-4`. Variants, versioning
+(`v25.12-usg.N`), testing, and apk / GitHub Pages:
+[`docs/USG-PRO-4.md`](../docs/USG-PRO-4.md).
 
 ## Files
 

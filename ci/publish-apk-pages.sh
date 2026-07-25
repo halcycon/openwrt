@@ -37,8 +37,8 @@ install_feeds_from() {
 	while IFS= read -r -d '' adb; do
 		feed_dir="$(dirname "$adb")"
 		feed="$(basename "$feed_dir")"
-		# skip oddities
-		[ "$feed" = "packages" ] && continue
+		# Skip arch containers that only hold feeds (no packages.adb of their own
+		# at this level — find only returns dirs that contain packages.adb).
 		mkdir -p "$dest/$feed"
 		cp -a "$feed_dir/." "$dest/$feed/"
 	done < <(find "$root" -type f -name packages.adb -print0)

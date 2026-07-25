@@ -20,6 +20,11 @@ drop-in replacement for official OpenWrt releases.
 
 Agent-oriented build/config notes live in [`AGENTS.md`](AGENTS.md).
 
+**Branch to use:** `usg-pro-4/factory-macs` (integration tip: factory
+EEPROM MACs + flow offload + docs). Do **not** merge that work into
+`main` — `main` tracks stock OpenWrt (`upstream/main`). Details:
+[`AGENTS.md` → Branches](AGENTS.md#branches--do-not-merge-into-main).
+
 ### Hardware flow offload (short)
 
 1. Flash an image that includes `kmod-octeon-flowtable` (default for this

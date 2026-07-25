@@ -30,6 +30,56 @@ The GitHub repository is not a native GitHub fork (source lives on
 Codeberg). It retains the complete Git history and tracks Codeberg
 through the `upstream` remote.
 
+### Branches — do not merge into `main`
+
+| Branch | Role |
+|--------|------|
+| `main` (local; tracks `upstream/main`) | Stock OpenWrt tip. **Not** the USG-PRO-4 integration line. |
+| `upstream/device/ubnt-e200` (and `origin/device/ubnt-e200`) | Shiz’s USG / EdgeRouter CN61xx device baseline. Rebase/merge from here. |
+| **`usg-pro-4/factory-macs`** (current work branch) | This mirror’s integration branch: device baseline **plus** factory MAC fix, octeon-flowtable, and docs. |
+
+**Do not merge `usg-pro-4/factory-macs` into `main`.** That would replace the
+OpenWrt-tracking tip with a device fork and make rebasing on upstream
+painful. Keep USG work on a device/integration branch; keep `main` as
+upstream OpenWrt (or omit publishing a GitHub `main` that pretends to be
+the product branch).
+
+If the default branch on GitHub should be “what you flash,” rename or
+retarget the default to `usg-pro-4/factory-macs` (or a clearer name such
+as `usg-pro-4`) — do not fold it into `main`.
+
+#### Why `usg-pro-4/factory-macs` exists
+
+Shiz’s `device/ubnt-e200` brings up the board, but first boot did not
+reliably assign the **factory EEPROM MAC addresses** to the four
+front-panel ports. Without that, interfaces get random/local MACs, which
+breaks ISP DHCP bindings, license/portal MAC locks, and any expectation
+that the unit matches the sticker / UniFi inventory.
+
+This branch started as that fix and has since collected the rest of the
+USG-PRO-4 delta for this mirror:
+
+1. **Factory MACs** — `target/linux/octeon/base-files/etc/uci-defaults/99-usg-pro-4-macs`
+   reads the base MAC from the EEPROM MTD region (or `/dev/mtd0` @
+   `0x140000` on the development NOR layout), validates it, then writes
+   named `network` device sections:
+
+   | Port | Offset from base |
+   |------|------------------|
+   | `lan1` / `br-lan` | +0 |
+   | `lan2` | +1 |
+   | `wan1` / `br-wan` | +2 |
+   | `wan2` | +3 |
+
+2. **Hardware flow offload** — `kmod-octeon-flowtable` + staging hooks
+   (see below).
+3. **Docs / hygiene** — `AGENTS.md`, README fork notes, gitignore rules.
+
+So the name is historical (“factory MAC topic branch”) but the tip is the
+full integration line. Prefer building and PR’ing from this branch (or
+rename it when convenient); sync device-only fixes back toward
+`device/ubnt-e200` when contributing upstream to Shiz.
+
 ## Supported hardware
 
 - Ubiquiti UniFi Security Gateway Pro 4 (marketing: USG-PRO-4)
@@ -45,6 +95,22 @@ CONFIG_TARGET_octeon=y
 CONFIG_TARGET_octeon_generic=y
 CONFIG_TARGET_octeon_generic_DEVICE_ubnt_unifi-usg-pro-4=y
 ```
+
+### Factory MAC addresses
+
+On first boot, `99-usg-pro-4-macs` applies EEPROM-derived MACs (see
+[Why `usg-pro-4/factory-macs` exists](#why-usg-pro-4factory-macs-exists)).
+Verify on device:
+
+```text
+uci show network | grep macaddr
+# or
+ip link show lan1; ip link show wan1
+```
+
+If the script logs `Unable to read a valid factory MAC address`, the
+EEPROM MTD layout does not match what the script expects — fix the
+partition map or the offset before shipping images.
 
 ## Hardware flow offload (octeon-flowtable)
 
@@ -158,8 +224,9 @@ touched component applies.
 
 ## Agent / contributor workflow
 
-1. Prefer `upstream/device/ubnt-e200` (or the active `device/ubnt-e200-*`
-   branch) as the device baseline; keep `origin` for this mirror's work.
+1. Work on `usg-pro-4/factory-macs` (or a topic branch cut from it).
+   Rebase onto `upstream/device/ubnt-e200` when Shiz moves. Do not merge
+   this line into `main`.
 2. Keep octeon-flowtable changes reviewable: module source, staging
    patch, image/cmdline/config, and docs.
 3. Do not vendor build artifacts or unrelated nested git repos.

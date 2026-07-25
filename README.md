@@ -37,6 +37,15 @@ EEPROM MACs + flow offload + docs). Do **not** merge that work into
 Tunables: `/etc/config/octeon-flowtable`. Details and hardening notes:
 [`AGENTS.md`](AGENTS.md).
 
+After enabling offload, run the **WQE↔netdev port-map check** once per
+interface class (RJ45 vs SFP) documented in AGENTS.md — that is the
+USG-PRO-4-specific security-critical validation.
+
+Preferred distribution: GitHub Actions workflow **build-usg-pro-4**
+(`ci/*.seed`) builds firmware **plus matching `.apk`s** and attaches them
+to a Release on `v*` tags (or upload artifacts on manual runs). See
+[`AGENTS.md`](AGENTS.md#ci--releases) and [`ci/README.md`](ci/README.md).
+
 ### What this repository does *not* ship
 
 Do not expect (and do not commit) build products: `bin/`, `build_dir/`,

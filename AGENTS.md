@@ -93,7 +93,7 @@ Device configuration symbol:
 ```text
 CONFIG_TARGET_octeon=y
 CONFIG_TARGET_octeon_generic=y
-CONFIG_TARGET_octeon_generic_DEVICE_ubnt_unifi-usg-pro-4=y
+CONFIG_TARGET_octeon_generic_DEVICE_ubnt_usg-pro-4=y
 ```
 
 ### Factory MAC addresses
@@ -132,7 +132,12 @@ reimplementation — no Ubiquiti binary, no Cavium SDK.
 | Kernel module package | `package/kernel/octeon-flowtable/` |
 | CVMSEG scratch | `CONFIG_CAVIUM_OCTEON_CVMSEG_SIZE=2` in `config-6.12` / `config-6.18` |
 | POW group spreading | USG-PRO-4 cmdline includes `receive_group_order=1` |
-| Device package | `kmod-octeon-flowtable` in `DEVICE_PACKAGES` for `ubnt_unifi-usg-pro-4` |
+| Device package | `kmod-octeon-flowtable` in `DEVICE_PACKAGES` for `ubnt_usg-pro-4` |
+
+Device symbol is **`ubnt_usg-pro-4`** (not `ubnt_unifi-usg-pro-4`).
+DTS labels rename netdevs (`lan1`/`lan2`/`wan1`/`wan2`) via
+`700-allocate_interface_by_label.patch`; PIP/WQE port numbers still come
+from the `pip` DT nodes (`&eth0`…`&eth3`).
 
 ### Enable on device
 
@@ -146,7 +151,7 @@ option flow_offloading_hw '1'
 Then `fw4 reload`. Module tunables: `/etc/config/octeon-flowtable`
 (init script `/etc/init.d/octeon-flowtable`).
 
-### Verify
+### Verify (basic)
 
 ```text
 # staging hook present after kernel rebuild
@@ -163,28 +168,134 @@ Useful debug params under `/sys/module/octeon_flowtable/parameters/`:
 `flows`, `hits`, `tx_ok`, `tx_fail`, `r_*` reject counters, `aqm_*`,
 `vlan_strict`, `verbose`.
 
-### Security / hardening notes (for review)
+### Guided check: WQE ↔ netdev port map (do this on hardware)
 
-The original `octeon-flowtable` author is reviewing this port for
-hardening. Known intentional trade-offs and review targets:
+**Why:** The flow key assumes WQE ingress port (`cvmx_wqe_get_port`) equals
+`priv->port` for the same netdev. On ERLite’s identical ports that is
+trivial; on USG-PRO-4 (RJ45 `lan*` + SFP `wan*`, DTS labels via
+`allocate_interface_by_label`) it is the one place a multi-interface
+Octeon II can drift. Mismatch **fails closed** (safe): flows may install
+as `HW_OFFLOAD` but every packet takes the slow path.
 
-1. **Wildcard-VID fallback** (`vlan_strict=0`, default) — required for
+**When:** Once per interface class after first flash of an offload-enabled
+image — copper (`lan1`/`lan2`) and SFP (`wan1`/`wan2`).
+
+#### Prerequisites
+
+1. Image includes `kmod-octeon-flowtable` and the staging hook
+   (`grep cvm_oct_register_rx_hook /proc/kallsyms` shows a symbol).
+2. In `/etc/config/firewall` → `config defaults`:
+   `flow_offloading '1'` and `flow_offloading_hw '1'`, then `fw4 reload`.
+3. Module loaded: `ls /sys/module/octeon_flowtable/parameters`.
+4. A client behind the port under test that can open a **forwarded** TCP
+   or UDP flow through the USG (LAN→WAN NAT is the usual case). Idle
+   local traffic is not enough.
+
+#### Procedure (repeat for copper, then SFP)
+
+**A. Pick the path under test**
+
+| Pass | Ingress class | Example path |
+|------|---------------|--------------|
+| 1 | RJ45 / copper | client on `lan1` (or `br-lan`) → internet via `wan1`/`br-wan` |
+| 2 | SFP | same idea with traffic ingressing `wan1`/`wan2` if you route that way, or swap which side is “inside” so the SFP port is on the forwarded path |
+
+If you only ever forward LAN→WAN with SFPs as WAN uplinks, pass 1 still
+exercises copper ingress; for SFP ingress, temporarily put a test host
+behind an SFP port (or generate traffic that ingresses that PIP port).
+
+**B. Snapshot counters**
+
+```text
+P=/sys/module/octeon_flowtable/parameters
+echo 1 > "$P/verbose"
+cat "$P/tx_ok" "$P/r_miss" "$P/r_ipoff" "$P/flows" "$P/hits"
+```
+
+Write down those five numbers (or paste into a note).
+
+**C. Generate a forwarded flow**
+
+From the test client, start a bulk transfer that must be routed/NATed
+(e.g. `iperf3`, a large HTTPS download, or `ping` is **not** enough —
+need TCP/UDP that conntrack will offload). On the USG:
+
+```text
+conntrack -L | grep HW_OFFLOAD
+```
+
+You want at least one established flow showing `HW_OFFLOAD` (or the
+offload flag your conntrack build prints).
+
+**D. Re-read counters under load**
+
+```text
+P=/sys/module/octeon_flowtable/parameters
+cat "$P/tx_ok" "$P/r_miss" "$P/r_ipoff" "$P/hits"
+```
+
+**E. Interpret**
+
+| Result | `tx_ok` | `r_miss` / `r_ipoff` | Verdict |
+|--------|---------|----------------------|---------|
+| Pass | Increases vs snapshot | Flat (or negligible) | WQE port matches netdev — this class is OK |
+| Fail (closed) | Flat | `r_miss` climbs while flows show `HW_OFFLOAD` | WQE port ≠ `priv->port` for that class — report with verbose logs |
+| No install | Flat | Flat, and no `HW_OFFLOAD` in conntrack | Offload not claimed yet — fix firewall/fw4/module before retesting |
+
+Optional while `verbose=1`: `logread -f` / `dmesg -w` for `octeon_flowtable:`
+install lines (`+flow … iif=…`). Confirm `iif` looks like a real PIP
+port index for the interface under test.
+
+**F. Clean up**
+
+```text
+echo 0 > /sys/module/octeon_flowtable/parameters/verbose
+```
+
+Mark copper and SFP each pass/fail in your notes before calling the
+port done. If either class fails, open an issue with the counter deltas
+and which ifnames were on the path — do not “fix” by disabling the
+check; the mapping in DT/driver needs correcting.
+
+### Security / hardening notes
+
+Upstream author review (packerlschupfer) confirmed the port is
+byte-for-byte correct for CN61xx (same cn38xx-style WQE; GPL-2.0).
+Remaining items:
+
+1. **WQE ↔ netdev port identity** — live check above (must-do on hardware).
+2. **Wildcard-VID fallback** (`vlan_strict=0`, default) — required for
    bridged-VLAN (lower-device) offload keys; allows a tagged frame to
    match an untagged-keyed flow on the same ingress port. Set
    `vlan_strict=1` on plain routing / 802.1Q-subinterface-only configs.
-2. **FAU register map** — module uses FAU offsets 8/16 (global counters)
-   and 24+ (per-port AQM). Confirm no collision with the staging driver's
-   FAU allocation on CN6120 boards.
-3. **Only TCP/UDP** (plus GRE at the flowtable layer where presented);
-   SYN/FIN/RST, fragments, L4_error, multi-buffer WQEs, TTL≤1, and MTU
-   exceeds are punted to the slow path.
-4. **Unsupported actions are refused** at install time (never silently
-   ignored) so the fast path cannot forward misbuilt packets.
-5. **Stale-entry eviction** + orphan GC after `fw4 reload` — watch for
-   races with DESTROY/STATS on multi-core softirq.
+3. **FAU register map** — offsets 8/16 (global counters) and 24+
+   (per-port AQM); confirm no collision with staging FAU use on CN6120.
+4. **Only TCP/UDP** (plus GRE where presented); SYN/FIN/RST, fragments,
+   L4_error, multi-buffer WQEs, TTL≤1, and MTU exceeds are punted.
+5. **Unsupported actions refused** at install time (never silently ignored).
+6. **Stale-entry eviction** + orphan GC after `fw4 reload`.
 
-Do not treat this document as a security audit; it is a checklist for
-the upcoming review.
+### CI / releases
+
+Workflow: [`.github/workflows/build-usg-pro-4.yml`](.github/workflows/build-usg-pro-4.yml)
+Seeds / feeds: [`ci/`](ci/).
+
+| Trigger | Result |
+|---------|--------|
+| Actions → **build-usg-pro-4** → Run workflow | Artifacts (`lean` / `router`) |
+| `git tag vX.Y.Z && git push origin vX.Y.Z` | Same build + GitHub Release with images + `.apk` tarballs |
+
+Manual run options: `ubuntu-24.04` or `self-hosted` runner; variant
+`both` / `lean` / `router`.
+
+Gotchas:
+
+1. No `python3-distutils` on Ubuntu 24.04 — seed uses `python3-setuptools`.
+2. No bare `#` lines in `ci/feeds.conf`.
+3. `workflow_dispatch` only appears for workflows on the **default**
+   branch (`usg-pro-4/factory-macs`).
+
+Adapted from [packerlschupfer/octeon-flowtable CI](https://github.com/packerlschupfer/octeon-flowtable/tree/main/ci).
 
 ## What must not be committed / uploaded to GitHub
 

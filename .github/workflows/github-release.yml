@@ -1,12 +1,12 @@
 name: Create GitHub release
 
+# Tag releases for USG-PRO-4 images are created by build-usg-pro-4.yml
+# (with firmware + matching .apk assets). Keep this as a manual draft helper only.
+
 permissions:
   contents: write
 
 on:
-  push:
-    tags:
-      - "v*"
   workflow_dispatch:
 
 jobs:

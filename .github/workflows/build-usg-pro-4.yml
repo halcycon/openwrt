@@ -1,0 +1,215 @@
+name: build-usg-pro-4
+
+# Build flashable OpenWrt images for the USG-PRO-4 (CN6120) with
+# kmod-octeon-flowtable baked against the patched staging kernel.
+# Variants (matrix): lean | router — see ci/*.seed.
+#
+# This repo IS the OpenWrt tree (device branch + offload port). Deliverable is
+# a from-source image + matching .apks (same kernel = matching hashes).
+#
+# Triggers:
+#   * tag v*          → build both variants + GitHub Release
+#   * workflow_dispatch → build, upload artifacts (no release)
+#
+# Gotchas (from packerlschupfer/octeon-flowtable CI):
+#   * no python3-distutils on Ubuntu 24.04 — use python3-setuptools
+#   * no bare '#' lines in feeds.conf
+#   * workflow_dispatch only listed for workflows on the default branch
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      runner:
+        description: GitHub-hosted or your self-hosted runner label
+        type: choice
+        options:
+          - ubuntu-24.04
+          - self-hosted
+        default: ubuntu-24.04
+      variant:
+        description: Which image variant(s) to build
+        type: choice
+        options:
+          - both
+          - lean
+          - router
+        default: both
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-usg-pro-4-${{ github.ref }}-${{ github.event_name }}
+  cancel-in-progress: ${{ github.event_name == 'workflow_dispatch' }}
+
+jobs:
+  build-image:
+    permissions:
+      contents: read
+    runs-on: ${{ github.event_name == 'workflow_dispatch' && inputs.runner || 'ubuntu-24.04' }}
+    timeout-minutes: 360
+    strategy:
+      fail-fast: false
+      matrix:
+        variant: [lean, router]
+    steps:
+      - name: Skip unwanted variant on manual single-variant runs
+        id: skip
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && \
+             [ "${{ inputs.variant }}" != "both" ] && \
+             [ "${{ inputs.variant }}" != "${{ matrix.variant }}" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Check out OpenWrt tree
+        if: steps.skip.outputs.skip != 'true'
+        uses: actions/checkout@v4
+
+      - name: Free up disk space (hosted runners)
+        if: steps.skip.outputs.skip != 'true' && (github.event_name != 'workflow_dispatch' || inputs.runner == 'ubuntu-24.04')
+        uses: jlumbroso/free-disk-space@main
+        with:
+          tool-cache: true
+          large-packages: false
+
+      - name: Install OpenWrt build dependencies
+        if: steps.skip.outputs.skip != 'true'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential clang flex bison g++ gawk \
+            gcc-multilib g++-multilib gettext git libncurses-dev libssl-dev \
+            python3 python3-setuptools rsync unzip zlib1g-dev \
+            file wget swig time
+
+      - name: Configure feeds
+        if: steps.skip.outputs.skip != 'true'
+        run: |
+          cp ci/feeds.conf feeds.conf
+          cat feeds.conf
+          ./scripts/feeds update -a
+          ./scripts/feeds install -a
+
+      - name: Seed config (${{ matrix.variant }})
+        if: steps.skip.outputs.skip != 'true'
+        run: |
+          case "${{ matrix.variant }}" in
+            lean) seed=ci/config.seed ;;
+            router) seed=ci/config-router.seed ;;
+            *) echo "unknown variant"; exit 1 ;;
+          esac
+          cp "$seed" .config
+          make defconfig
+          grep -q '^CONFIG_TARGET_octeon_generic_DEVICE_ubnt_usg-pro-4=y' .config \
+            || { echo "device profile not selected"; exit 1; }
+          grep -q '^CONFIG_PACKAGE_kmod-octeon-flowtable=y' .config \
+            || { echo "kmod-octeon-flowtable not selected"; exit 1; }
+
+      - name: Cache downloads
+        if: steps.skip.outputs.skip != 'true'
+        uses: actions/cache@v4
+        with:
+          path: dl
+          key: dl-usg-${{ matrix.variant }}-${{ hashFiles('ci/*.seed', 'ci/feeds.conf') }}-${{ github.sha }}
+          restore-keys: |
+            dl-usg-${{ matrix.variant }}-
+            dl-usg-
+
+      - name: Cache toolchain
+        if: steps.skip.outputs.skip != 'true'
+        uses: actions/cache@v4
+        with:
+          path: |
+            staging_dir/toolchain-*
+            build_dir/toolchain-*
+          key: toolchain-usg-${{ matrix.variant }}-${{ hashFiles('toolchain/**', 'include/toolchain*.mk', 'rules.mk') }}
+          restore-keys: |
+            toolchain-usg-${{ matrix.variant }}-
+            toolchain-usg-
+
+      - name: Download sources
+        if: steps.skip.outputs.skip != 'true'
+        run: make download -j"$(nproc)" V=s || make download -j1 V=s
+
+      - name: Build
+        if: steps.skip.outputs.skip != 'true'
+        run: |
+          make -j"$(nproc)" || {
+            echo "::warning::parallel build failed, retrying single-threaded for a readable log"
+            make -j1 V=sc
+          }
+
+      - name: Collect output
+        if: steps.skip.outputs.skip != 'true'
+        run: |
+          out="$GITHUB_WORKSPACE/release"
+          mkdir -p "$out"
+          bin=bin/targets/octeon/generic
+          shopt -s nullglob
+          for f in "$bin"/*ubnt_usg-pro-4* \
+                   "$bin"/sha256sums \
+                   "$bin"/packages/*octeon-flowtable*; do
+            [ -e "$f" ] || continue
+            cp -v "$f" "$out/${{ matrix.variant }}-$(basename "$f")"
+          done
+          # Full package set built for this image (matching kernel hashes)
+          if [ -d "$bin/packages" ]; then
+            tar -C "$bin" -czf "$out/${{ matrix.variant }}-target-packages.tar.gz" packages
+          fi
+          if [ -d bin/packages ]; then
+            tar -C bin -czf "$out/${{ matrix.variant }}-packages.tar.gz" packages
+          fi
+          ( cd "$out" && sha256sum ${{ matrix.variant }}-* > "sha256sums-${{ matrix.variant }}.txt" )
+          echo "== ${{ matrix.variant }} release contents =="
+          ls -lah "$out"
+          ls "$out/${{ matrix.variant }}-"*ubnt_usg-pro-4* >/dev/null \
+            || { echo "no ubnt_usg-pro-4 image produced"; exit 1; }
+
+      - name: Upload build artifacts
+        if: steps.skip.outputs.skip != 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: image-${{ matrix.variant }}
+          path: release/
+          if-no-files-found: error
+
+  release:
+    needs: build-image
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - name: Download all variant artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+
+      - name: Publish Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          files=$(find dist -type f | sort)
+          echo "== release assets =="
+          echo "$files"
+          # shellcheck disable=SC2086
+          gh release create "${GITHUB_REF_NAME}" $files \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "USG-PRO-4 ${GITHUB_REF_NAME}" \
+            --notes "Prebuilt OpenWrt images for the **USG-PRO-4** (CN6120 / \`ubnt,usg-pro-4\`) with clean-room hardware flow offload (\`kmod-octeon-flowtable\`).
+
+          Two variants (prefixed in asset names):
+          - **lean** — offload + conntrack/tcpdump
+          - **router** — lean + LuCI (HTTPS) + WireGuard
+
+          Packages (\`.apk\` / tarballs) are built against **this** kernel — hashes match the image. No separate package feed required.
+
+          Device profile: \`ubnt_usg-pro-4\`. After flash, enable \`flow_offloading\` + \`flow_offloading_hw\` and run the WQE↔netdev port-map check in \`AGENTS.md\` (once on RJ45, once on SFP).
+
+          Unofficial community images — flash at your own risk. Verify \`sha256sums-*.txt\` before flashing.
+
+          CI adapted from https://github.com/packerlschupfer/octeon-flowtable"

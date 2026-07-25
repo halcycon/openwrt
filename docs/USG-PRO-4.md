@@ -201,13 +201,26 @@ cat "$P/tx_ok" "$P/r_miss" "$P/r_ipoff" "$P/hits"
 
 | Result | `tx_ok` | `r_miss` / `r_ipoff` | Meaning |
 |--------|---------|----------------------|---------|
-| Pass | Rising | Flat | Port map OK |
-| Fail closed | Flat | `r_miss` rising with `HW_OFFLOAD` flows | WQE ≠ `priv->port` — file an issue |
-| No install | Flat | Flat, no `HW_OFFLOAD` | Fix fw4/module first |
+| Pass | Rising under load | `r_ipoff` flat; `r_miss` may still tick (non-offloaded traffic) | Port map OK for this path |
+| Fail closed | Flat | `r_miss` rising while flows claim offload | WQE ≠ `priv->port` — file an issue |
+| No install | Flat | Flat, and no fast-path hits | Fix fw4/module first |
+
+`tx_ok` delta under forwarded load is the definitive fast-path proof
+(software forwarding can also hit line rate when idle). `conntrack` may
+not always print `HW_OFFLOAD` depending on timing/flags — don’t fail the
+check on that alone if `tx_ok` climbed.
 
 ```text
 echo 0 > /sys/module/octeon_flowtable/parameters/verbose
 ```
+
+#### Hardware validation log
+
+| Date | Unit | Path | `tx_ok` Δ | `r_miss` | `r_ipoff` | `tx_fail` / `aqm_drops` | Result |
+|------|------|------|-----------|----------|-----------|-------------------------|--------|
+| 2026-07-25 | GW1 | forwarded load (iperf3); confirm RJ45 vs SFP class | +180 874 (470 079 456 → 470 260 330) | rose (background OK) | 0 | 0 / 0 | **Pass** (fast path engaged) |
+
+Repeat for the other interface class (RJ45 vs SFP) if only one was tested.
 
 ### 3. Security / hardening checklist
 

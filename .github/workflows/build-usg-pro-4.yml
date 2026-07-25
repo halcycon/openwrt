@@ -206,10 +206,47 @@ jobs:
           - **lean** — offload + conntrack/tcpdump
           - **router** — lean + LuCI (HTTPS) + WireGuard
 
-          Packages (\`.apk\` / tarballs) are built against **this** kernel — hashes match the image. No separate package feed required.
+          Packages (\`.apk\` / tarballs) match **this** kernel. After the Pages job finishes, apk feeds are at:
+          https://halcycon.github.io/openwrt/apk/${GITHUB_REF_NAME}/
+          (also \`apk/current/\`). See \`docs/USG-PRO-4.md\`.
 
-          Device profile: \`ubnt_usg-pro-4\`. After flash, enable \`flow_offloading\` + \`flow_offloading_hw\` and run the WQE↔netdev port-map check in \`AGENTS.md\` (once on RJ45, once on SFP).
+          Device profile: \`ubnt_usg-pro-4\`. Enable \`flow_offloading\` + \`flow_offloading_hw\`, then run the WQE↔netdev port-map check (RJ45 + SFP).
 
           Unofficial community images — flash at your own risk. Verify \`sha256sums-*.txt\` before flashing.
 
           CI adapted from https://github.com/packerlschupfer/octeon-flowtable"
+
+  pages:
+    needs: release
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Check out (for publish script)
+        uses: actions/checkout@v4
+
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+
+      - name: Build Pages site (apk feeds)
+        run: |
+          chmod +x ci/publish-apk-pages.sh
+          ./ci/publish-apk-pages.sh "${GITHUB_REF_NAME}" dist _site
+          test -d _site/apk || { echo "no apk tree produced"; exit 1; }
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

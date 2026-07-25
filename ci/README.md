@@ -24,7 +24,11 @@ Same device profile: `ubnt_usg-pro-4`. Variants, versioning
 ## Triggers
 
 - `workflow_dispatch` (from the **default** branch) → artifacts
-- tag `v*` → build both variants + GitHub Release (images + `.apk` tarballs)
+- tag `v*` → build both variants + GitHub Release + **GitHub Pages apk feed**
+- **deploy-apk-pages** (manual) → republish Pages from an existing Release tag
+
+Pages URL: https://halcycon.github.io/openwrt/  
+Publisher: [`publish-apk-pages.sh`](publish-apk-pages.sh)
 
 This repository **is** the OpenWrt tree, so the workflow builds in-place.
 Adapted from [packerlschupfer/octeon-flowtable](https://github.com/packerlschupfer/octeon-flowtable) CI.

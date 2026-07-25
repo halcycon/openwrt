@@ -275,18 +275,23 @@ apk add --allow-untrusted kmod-octeon-flowtable   # until you ship a signing key
 Pin the path to the firmware tag you flashed. Mixing tags or lean/router
 breaks kmods.
 
-### How to publish (outline)
+### How publishing works (wired)
 
-1. CI builds Release assets (already done by `build-usg-pro-4.yml`).
-2. A follow-up job (or manual workflow) downloads
-   `*-target-packages.tar.gz` / `*-packages.tar.gz`, unpacks into
-   `apk/<tag>/<variant>/…`, and deploys to GitHub Pages
-   (`peaceiris/actions-gh-pages` or `actions/upload-pages-artifact` +
-   `actions/deploy-pages`).
-3. Optionally install a feed signing key on devices and drop
-   `--allow-untrusted`.
+1. Tag `v25.12-usg.N` → **build-usg-pro-4** builds images, creates a
+   GitHub Release, then the **pages** job unpacks package tarballs via
+   [`ci/publish-apk-pages.sh`](../ci/publish-apk-pages.sh) and deploys
+   with `actions/deploy-pages`.
+2. Site URL: https://halcycon.github.io/openwrt/  
+   Feeds: `apk/<tag>/{lean,router}/…` and `apk/current/…` (latest deploy).
+3. Redeploy without rebuilding: Actions → **deploy-apk-pages** → enter
+   an existing Release tag.
 
-Until that deploy job exists: use Release downloads (methods A–C).
+Each deploy **replaces** the Pages site (versioned tree for that tag +
+`current/`) so the soft ~1 GB limit stays manageable. Older tags’ feeds
+remain downloadable as Release tarballs (methods A–C).
+
+Optional later: ship a signing key under `/etc/apk/keys/` and drop
+`--allow-untrusted`.
 
 ### Pages vs R2
 

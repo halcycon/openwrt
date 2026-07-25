@@ -1,0 +1,71 @@
+name: deploy-apk-pages
+
+# Redeploy (or initially publish) the GitHub Pages apk feed from an
+# existing GitHub Release's package tarballs — without rebuilding OpenWrt.
+# Also useful after enabling Pages the first time.
+#
+# workflow_dispatch only appears on the default branch.
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to publish (e.g. v25.12-usg.1)
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: deploy-apk-pages
+  cancel-in-progress: true
+
+jobs:
+  pages:
+    runs-on: ubuntu-24.04
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Download Release package assets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ inputs.tag }}
+        run: |
+          mkdir -p dist
+          # Only the tarballs needed for the feed (not full sysupgrade images)
+          patterns=(
+            'lean-target-packages.tar.gz'
+            'lean-packages.tar.gz'
+            'router-target-packages.tar.gz'
+            'router-packages.tar.gz'
+          )
+          for p in "${patterns[@]}"; do
+            gh release download "$TAG" --repo "$GITHUB_REPOSITORY" \
+              --pattern "$p" --dir dist || true
+          done
+          ls -lah dist
+          ls dist/*packages*.tar.gz >/dev/null 2>&1 \
+            || { echo "No package tarballs on release $TAG"; exit 1; }
+
+      - name: Build Pages site
+        env:
+          TAG: ${{ inputs.tag }}
+        run: |
+          chmod +x ci/publish-apk-pages.sh
+          ./ci/publish-apk-pages.sh "$TAG" dist _site
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

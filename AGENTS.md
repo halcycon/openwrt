@@ -56,8 +56,8 @@ Why the branch name: started as factory EEPROM MAC assignment
 | WQE↔netdev port-map check (RJ45 + SFP) | [docs/USG-PRO-4.md § Guided check](docs/USG-PRO-4.md#2-guided-check--wqe--netdev-port-map-required-once) |
 | Version tags (`v25.12-usg.N`) | [docs/USG-PRO-4.md § Versioning](docs/USG-PRO-4.md#versioning) |
 | lean vs router, Release assets, `apk` install | [docs/USG-PRO-4.md § Releases](docs/USG-PRO-4.md#releases-and-packages) |
-| GitHub Pages for `.apk` feeds | [docs/USG-PRO-4.md § Pages](docs/USG-PRO-4.md#publishing-apks-on-github-pages) |
-| Workflow / seeds | `.github/workflows/build-usg-pro-4.yml`, `ci/` |
+| GitHub Pages apk feeds | [docs/USG-PRO-4.md § Pages](docs/USG-PRO-4.md#publishing-apks-on-github-pages) · https://halcycon.github.io/openwrt/ |
+| Workflow / seeds | `build-usg-pro-4.yml`, `deploy-apk-pages.yml`, `ci/` |
 
 In-tree offload pieces: `package/kernel/octeon-flowtable/`,
 `target/linux/octeon/patches-*/710-octeon-flowtable-hooks.patch`,

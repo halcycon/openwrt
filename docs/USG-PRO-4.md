@@ -286,6 +286,11 @@ breaks kmods.
 3. Redeploy without rebuilding: Actions → **deploy-apk-pages** → enter
    an existing Release tag.
 
+The `github-pages` environment must allow **tag** deploys matching `v*`
+(plus the integration branch). If Pages fails with “not allowed to deploy
+… protection rules,” add a deployment-branch policy of type **tag** /
+name `v*` under Settings → Environments → github-pages.
+
 Each deploy **replaces** the Pages site (versioned tree for that tag +
 `current/`) so the soft ~1 GB limit stays manageable. Older tags’ feeds
 remain downloadable as Release tarballs (methods A–C).

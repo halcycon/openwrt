@@ -17,6 +17,7 @@ set -euo pipefail
 TAG="${1:?tag required (e.g. v25.12-usg.1)}"
 SRC="${2:?artifact root required}"
 OUT="${3:?output site root required}"
+PAGES_HOST="${PAGES_HOST:-https://halcycon.github.io/openwrt}"
 
 rm -rf "$OUT"
 mkdir -p "$OUT/apk/$TAG"
@@ -26,11 +27,47 @@ find_asset() {
 	find "$SRC" -type f -name "$name" | head -n1
 }
 
+# Copy feed dirs that contain packages.adb up to $dest/<feed>/.
+# Handles both packages/<feed>/ and packages/<arch>/<feed>/.
+install_feeds_from() {
+	local root="$1"
+	local dest="$2"
+	local adb feed_dir feed
+
+	while IFS= read -r -d '' adb; do
+		feed_dir="$(dirname "$adb")"
+		feed="$(basename "$feed_dir")"
+		# skip oddities
+		[ "$feed" = "packages" ] && continue
+		mkdir -p "$dest/$feed"
+		cp -a "$feed_dir/." "$dest/$feed/"
+	done < <(find "$root" -type f -name packages.adb -print0)
+}
+
+write_customfeeds() {
+	local dest="$1"
+	local variant="$2"
+	local adb feed
+
+	{
+		echo "# USG-PRO-4 apk feed — $TAG / $variant"
+		echo "# Paste into /etc/apk/repositories.d/customfeeds.list"
+		echo "# Use --allow-untrusted until a signing key is published."
+		if [ -f "$dest/targets/packages.adb" ]; then
+			echo "$PAGES_HOST/apk/$TAG/$variant/targets/packages.adb"
+		fi
+		while IFS= read -r -d '' adb; do
+			feed="$(basename "$(dirname "$adb")")"
+			[ "$feed" = "targets" ] && continue
+			echo "$PAGES_HOST/apk/$TAG/$variant/$feed/packages.adb"
+		done < <(find "$dest" -mindepth 2 -maxdepth 2 -type f -name packages.adb -print0 | sort -z)
+	} > "$dest/customfeeds.list"
+}
+
 publish_variant() {
 	local variant="$1"
 	local dest="$OUT/apk/$TAG/$variant"
-	local target_tar feed_tar
-	local tmp
+	local target_tar feed_tar tmp
 
 	target_tar="$(find_asset "${variant}-target-packages.tar.gz" || true)"
 	feed_tar="$(find_asset "${variant}-packages.tar.gz" || true)"
@@ -48,7 +85,6 @@ publish_variant() {
 		mkdir -p "$tmp/target"
 		tar -xzf "$target_tar" -C "$tmp/target"
 		mkdir -p "$dest/targets"
-		# tarball root is packages/
 		if [ -d "$tmp/target/packages" ]; then
 			cp -a "$tmp/target/packages/." "$dest/targets/"
 		else
@@ -61,54 +97,41 @@ publish_variant() {
 		mkdir -p "$tmp/feed"
 		tar -xzf "$feed_tar" -C "$tmp/feed"
 		if [ -d "$tmp/feed/packages" ]; then
-			# packages/<feed>/packages.adb
-			for feed_dir in "$tmp/feed/packages"/*; do
-				[ -d "$feed_dir" ] || continue
-				name="$(basename "$feed_dir")"
-				mkdir -p "$dest/$name"
-				cp -a "$feed_dir/." "$dest/$name/"
-			done
+			install_feeds_from "$tmp/feed/packages" "$dest"
+		else
+			install_feeds_from "$tmp/feed" "$dest"
 		fi
 	fi
 
 	rm -rf "$tmp"
-
-	# Example customfeeds.list for this tag/variant (device can copy)
-	{
-		echo "# USG-PRO-4 apk feed — $TAG / $variant"
-		echo "# Paste into /etc/apk/repositories.d/customfeeds.list"
-		echo "# Use --allow-untrusted until a signing key is published."
-		if [ -f "$dest/targets/packages.adb" ]; then
-			echo "https://halcycon.github.io/openwrt/apk/$TAG/$variant/targets/packages.adb"
-		fi
-		for adb in "$dest"/*/packages.adb; do
-			[ -f "$adb" ] || continue
-			rel="${adb#"$dest"/}"
-			feed="$(dirname "$rel")"
-			[ "$feed" = "targets" ] && continue
-			echo "https://halcycon.github.io/openwrt/apk/$TAG/$variant/$feed/packages.adb"
-		done
-	} > "$dest/customfeeds.list"
+	write_customfeeds "$dest" "$variant"
 
 	echo "published $variant:"
 	find "$dest" -name 'packages.adb' | sort
+	echo "--- customfeeds.list ---"
+	cat "$dest/customfeeds.list"
 }
 
 for variant in lean router; do
 	publish_variant "$variant"
 done
 
-# "current" always tracks this deploy (keeps Pages under ~1GB if we only
-# ship one versioned tree + current).
 if [ -d "$OUT/apk/$TAG" ]; then
 	rm -rf "$OUT/apk/current"
 	cp -a "$OUT/apk/$TAG" "$OUT/apk/current"
 fi
 
 REPO_URL="https://github.com/${GITHUB_REPOSITORY:-halcycon/openwrt}"
-PAGES_URL="https://halcycon.github.io/openwrt"
+LEAN_FEEDS=""
+if [ -f "$OUT/apk/$TAG/lean/customfeeds.list" ]; then
+	LEAN_FEEDS="$(grep -v '^#' "$OUT/apk/$TAG/lean/customfeeds.list" | grep -v '^$' || true)"
+fi
+if [ -z "$LEAN_FEEDS" ]; then
+	LEAN_FEEDS="# (lean feed not in this deploy)"
+fi
 
-cat > "$OUT/index.html" <<EOF
+# Use HTML_EOF so a line containing EOF inside the example does not terminate us.
+cat > "$OUT/index.html" <<HTML_EOF
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -131,9 +154,9 @@ cat > "$OUT/index.html" <<EOF
      also at <a href="apk/current/">apk/current/</a>)</p>
   <h2>On the device</h2>
   <p>Flash the matching Release image first, then (example for <code>lean</code>):</p>
-  <pre>cat &gt; /etc/apk/repositories.d/customfeeds.list &lt;&lt;'EOF'
-$( [ -f "$OUT/apk/$TAG/lean/customfeeds.list" ] && grep -v '^#' "$OUT/apk/$TAG/lean/customfeeds.list" | grep -v '^$' || echo "# (lean feed not in this deploy)" )
-EOF
+  <pre>cat &gt; /etc/apk/repositories.d/customfeeds.list &lt;&lt;'END'
+${LEAN_FEEDS}
+END
 
 apk update
 apk add --allow-untrusted kmod-octeon-flowtable</pre>
@@ -144,9 +167,8 @@ apk add --allow-untrusted kmod-octeon-flowtable</pre>
   <p>Docs: <a href="${REPO_URL}/blob/usg-pro-4/factory-macs/docs/USG-PRO-4.md">docs/USG-PRO-4.md</a></p>
 </body>
 </html>
-EOF
+HTML_EOF
 
-# Avoid Jekyll ignoring paths with underscores / dotfiles
 touch "$OUT/.nojekyll"
 
 echo "Site root ready at $OUT"

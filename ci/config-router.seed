@@ -1,21 +1,49 @@
-# Router variant: lean + LuCI (HTTPS) + WireGuard for a turnkey USG-PRO-4 image.
+# Router variant: turnkey USG-PRO-4 gateway image.
 # SEED only — workflow copies to .config and runs `make defconfig`.
+#
+# Includes lean toolkit + LuCI (HTTPS) + WireGuard + Proton2025 theme +
+# common gateway apps from the maintainer .config (adblock, DoH, mwan3, pbr,
+# diagnostics). Not CONFIG_ALL.
 
 CONFIG_TARGET_octeon=y
 CONFIG_TARGET_octeon_generic=y
 CONFIG_TARGET_octeon_generic_DEVICE_ubnt_usg-pro-4=y
 
+# Signing (match CI persistent key; see ci/keys/)
+CONFIG_SIGNED_PACKAGES=y
+CONFIG_SIGN_EACH_PACKAGE=y
+
 CONFIG_PACKAGE_kmod-octeon-flowtable=y
 CONFIG_PACKAGE_kmod-nft-offload=y
 CONFIG_PACKAGE_kmod-nf-flow=y
 
+# --- Web UI ---
 CONFIG_PACKAGE_luci=y
 CONFIG_PACKAGE_luci-ssl=y
+CONFIG_PACKAGE_luci-theme-bootstrap=y
+CONFIG_PACKAGE_luci-theme-proton2025=y
 
+# --- VPN ---
 CONFIG_PACKAGE_kmod-wireguard=y
 CONFIG_PACKAGE_wireguard-tools=y
 CONFIG_PACKAGE_luci-proto-wireguard=y
+CONFIG_PACKAGE_tailscale=y
 
+# --- Policy / multi-WAN / DNS / adblock (from maintainer config) ---
+CONFIG_PACKAGE_mwan3=y
+CONFIG_PACKAGE_luci-app-mwan3=y
+CONFIG_PACKAGE_pbr=y
+CONFIG_PACKAGE_luci-app-pbr=y
+CONFIG_PACKAGE_adblock-fast=y
+CONFIG_PACKAGE_luci-app-adblock-fast=y
+CONFIG_PACKAGE_https-dns-proxy=y
+CONFIG_PACKAGE_luci-app-https-dns-proxy=y
+
+# --- Diagnostics / quality of life ---
 CONFIG_PACKAGE_conntrack=y
 CONFIG_PACKAGE_kmod-nf-conntrack-netlink=y
 CONFIG_PACKAGE_tcpdump=y
+CONFIG_PACKAGE_htop=y
+CONFIG_PACKAGE_nano=y
+CONFIG_PACKAGE_curl=y
+CONFIG_PACKAGE_iperf3=y

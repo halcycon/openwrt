@@ -82,10 +82,57 @@ octeon-flowtable: in-tree port of packerlschupfer/octeon-flowtable
 |--|----------|------------|
 | Seed | `ci/config.seed` | `ci/config-router.seed` |
 | Offload | yes | yes |
-| Extra | conntrack, tcpdump | + LuCI HTTPS + WireGuard |
-| Use | minimal / DIY | turnkey gateway |
+| Extra | conntrack, tcpdump | LuCI (HTTPS) + WireGuard + Tailscale + Proton2025 theme + mwan3/pbr/adblock-fast/https-dns-proxy + htop/nano/curl/iperf3 |
+| Use | minimal / DIY | turnkey gateway (matches maintainer `.config` extras) |
 
-Same device profile. Neither is “build all packages.”
+Same device profile. Neither is `CONFIG_ALL` (that would pull every feed
+package).
+
+### What `v25.12-usg.1` actually shipped
+
+Measured from the Release tarballs:
+
+- **lean:** ~65 feed `.apk`s — base system + conntrack/tcpdump toolkit
+  (no LuCI).
+- **router (that tag):** ~99 feed `.apk`s — lean set **plus** the LuCI
+  stack (bootstrap theme), WireGuard userspace, and their dependencies.
+  **Not** yet Proton2025 / mwan3 / adblock / etc. (those land in the
+  next tag after the expanded `ci/config-router.seed`).
+
+Router is “LuCI + WireGuard (+ deps)”, not a mysterious second OS.
+
+### Recommended extras (now in router seed)
+
+From the maintainer `.config`, worth shipping in **router**:
+
+| Package | Why |
+|---------|-----|
+| `luci-theme-proton2025` | Default polished LuCI theme ([ChesterGoodiny](https://github.com/ChesterGoodiny/luci-theme-proton2025), Apache-2.0) |
+| `mwan3` + `luci-app-mwan3` | Multi-WAN on a 4-port USG |
+| `pbr` + `luci-app-pbr` | Policy routing |
+| `adblock-fast` + LuCI app | DNS adblocking |
+| `https-dns-proxy` + LuCI app | DNS-over-HTTPS |
+| `tailscale` | Easy mesh/VPN overlay |
+| `htop`, `nano`, `curl`, `iperf3` | Ops / diagnostics |
+
+Still optional / not in seed (add if you need them): SQM/QoS, OpenVPN,
+collectd/prometheus, USB gadget extras beyond device defaults, full
+`avahi` stack.
+
+### LuCI theme: Proton2025
+
+In-tree as a **git submodule**:
+
+- Path: `package/luci-theme-proton2025`
+- Upstream: https://github.com/ChesterGoodiny/luci-theme-proton2025
+- Author / copyright: **ChesterGoodiny** (Apache-2.0; see theme `LICENSE` / `NOTICE`)
+- Selected in the **router** seed (`CONFIG_PACKAGE_luci-theme-proton2025`)
+
+```bash
+git submodule update --init --recursive
+```
+
+CI checks out submodules automatically.
 
 ## How to test
 
@@ -194,6 +241,26 @@ For tag `v25.12-usg.1`, assets are prefixed `lean-` or `router-`:
 Only install packages from the **same tag and same variant** as the
 running firmware.
 
+### Package / index signing (no `--allow-untrusted`)
+
+OpenWrt signs `.apk` files and `packages.adb` with ECDSA P-256 when
+`CONFIG_SIGN_EACH_PACKAGE=y` and `CONFIG_SIGNED_PACKAGES=y` (enabled in
+our seeds).
+
+| Piece | Location |
+|-------|----------|
+| Public key (git) | [`ci/keys/usg-apk-public.pem`](../ci/keys/usg-apk-public.pem) |
+| Private key | GitHub Actions secret `USG_APK_PRIVATE_KEY` (never committed) |
+| In firmware | `/etc/apk/keys/` (via `base-files` from `public-key.pem`) |
+| On Pages | https://halcycon.github.io/openwrt/keys/usg-apk.pem |
+
+CI writes the secret to `private-key.pem` and the committed public key to
+`public-key.pem` before `make`. Rotation notes:
+[`ci/keys/README.md`](../ci/keys/README.md).
+
+On a **CI-built** image with matching feeds: plain `apk update` / `apk add`.
+On a foreign image: install the public key into `/etc/apk/keys/` first.
+
 ### Install on a live USG (`apk`)
 
 This tree uses **apk**, not opkg.
@@ -207,7 +274,8 @@ sysupgrade -n /tmp/lean-openwrt-octeon-generic-ubnt_usg-pro-4-squashfs-sysupgrad
 **B — Sideload one `.apk` from the Release** (same tag/variant only)
 
 ```text
-apk add --allow-untrusted ./kmod-octeon-flowtable-*.apk
+apk add ./kmod-octeon-flowtable-*.apk
+# --allow-untrusted only if the running image lacks ci/keys public key
 ```
 
 **C — Local feed from tarball**
@@ -217,7 +285,7 @@ tar -xzf lean-target-packages.tar.gz
 tar -xzf lean-packages.tar.gz
 # add file:///…/packages.adb lines to /etc/apk/repositories.d/customfeeds.list
 apk update
-apk add --allow-untrusted <pkg>
+apk add <pkg>
 ```
 
 **D — HTTP feed (GitHub Pages or R2)** — see next section.
@@ -268,8 +336,11 @@ https://halcycon.github.io/openwrt/apk/v25.12-usg.1/lean/packages/packages.adb
 https://halcycon.github.io/openwrt/apk/v25.12-usg.1/lean/luci/packages.adb
 EOF
 
+# if this image was not built by our CI, install the public key first:
+# wget -O /etc/apk/keys/usg-apk.pem https://halcycon.github.io/openwrt/keys/usg-apk.pem
+
 apk update
-apk add --allow-untrusted kmod-octeon-flowtable   # until you ship a signing key
+apk add kmod-octeon-flowtable
 ```
 
 Pin the path to the firmware tag you flashed. Mixing tags or lean/router
@@ -292,11 +363,10 @@ The `github-pages` environment must allow **tag** deploys matching `v*`
 name `v*` under Settings → Environments → github-pages.
 
 Each deploy **replaces** the Pages site (versioned tree for that tag +
-`current/`) so the soft ~1 GB limit stays manageable. Older tags’ feeds
-remain downloadable as Release tarballs (methods A–C).
-
-Optional later: ship a signing key under `/etc/apk/keys/` and drop
-`--allow-untrusted`.
+`current/` + `keys/usg-apk.pem`) so the soft ~1 GB limit stays
+manageable. Older tags’ feeds remain downloadable as Release tarballs
+(methods A–C). Signing uses `USG_APK_PRIVATE_KEY` +
+`ci/keys/usg-apk-public.pem`.
 
 ### Pages vs R2
 
@@ -314,4 +384,5 @@ Optional later: ship a signing key under `/etc/apk/keys/` and drop
 
 - Device tree / board work: [Shiz/openwrt](https://codeberg.org/Shiz/openwrt)
 - Flow offload: [packerlschupfer/octeon-flowtable](https://github.com/packerlschupfer/octeon-flowtable)
-- CI patterns adapted from that project’s `build-image.yml` / `ci/`
+- LuCI theme Proton2025: [ChesterGoodiny/luci-theme-proton2025](https://github.com/ChesterGoodiny/luci-theme-proton2025) (Apache-2.0)
+- CI patterns adapted from packerlschupfer’s `build-image.yml` / `ci/`

@@ -69,6 +69,8 @@ jobs:
       - name: Check out OpenWrt tree
         if: steps.skip.outputs.skip != 'true'
         uses: actions/checkout@v4
+        with:
+          submodules: recursive
 
       - name: Free up disk space (hosted runners)
         if: steps.skip.outputs.skip != 'true' && (github.event_name != 'workflow_dispatch' || inputs.runner == 'ubuntu-24.04')
@@ -86,6 +88,24 @@ jobs:
             python3 python3-setuptools rsync unzip zlib1g-dev \
             file wget swig time
 
+      - name: Install persistent APK signing key
+        if: steps.skip.outputs.skip != 'true'
+        env:
+          USG_APK_PRIVATE_KEY: ${{ secrets.USG_APK_PRIVATE_KEY }}
+        run: |
+          if [ -z "$USG_APK_PRIVATE_KEY" ]; then
+            echo "::warning::USG_APK_PRIVATE_KEY secret missing — build will use an ephemeral key (apk add needs --allow-untrusted on other images)"
+            exit 0
+          fi
+          printf '%s\n' "$USG_APK_PRIVATE_KEY" > private-key.pem
+          chmod 600 private-key.pem
+          cp ci/keys/usg-apk-public.pem public-key.pem
+          # Sanity: public matches private
+          openssl ec -in private-key.pem -pubout 2>/dev/null | \
+            diff -u public-key.pem - >/dev/null \
+            || { echo "public-key.pem does not match USG_APK_PRIVATE_KEY"; exit 1; }
+          echo "Using persistent USG APK signing key"
+
       - name: Configure feeds
         if: steps.skip.outputs.skip != 'true'
         run: |
@@ -93,6 +113,9 @@ jobs:
           cat feeds.conf
           ./scripts/feeds update -a
           ./scripts/feeds install -a
+          # Theme lives in-tree as a submodule; ensure luci.mk is present
+          test -f feeds/luci/luci.mk
+          test -f package/luci-theme-proton2025/Makefile
 
       - name: Seed config (${{ matrix.variant }})
         if: steps.skip.outputs.skip != 'true'
@@ -108,6 +131,10 @@ jobs:
             || { echo "device profile not selected"; exit 1; }
           grep -q '^CONFIG_PACKAGE_kmod-octeon-flowtable=y' .config \
             || { echo "kmod-octeon-flowtable not selected"; exit 1; }
+          if [ "${{ matrix.variant }}" = "router" ]; then
+            grep -q '^CONFIG_PACKAGE_luci-theme-proton2025=y' .config \
+              || { echo "luci-theme-proton2025 not selected"; exit 1; }
+          fi
 
       - name: Cache downloads
         if: steps.skip.outputs.skip != 'true'
@@ -204,11 +231,11 @@ jobs:
 
           Two variants (prefixed in asset names):
           - **lean** — offload + conntrack/tcpdump
-          - **router** — lean + LuCI (HTTPS) + WireGuard
+          - **router** — LuCI (HTTPS) + WireGuard/Tailscale + Proton2025 theme + mwan3/pbr/adblock/DoH + diagnostics
 
-          Packages (\`.apk\` / tarballs) match **this** kernel. After the Pages job finishes, apk feeds are at:
-          https://halcycon.github.io/openwrt/apk/${GITHUB_REF_NAME}/
-          (also \`apk/current/\`). See \`docs/USG-PRO-4.md\`.
+          Packages (\`.apk\` / tarballs) match **this** kernel and are signed with the USG APK key.
+          After the Pages job finishes: https://halcycon.github.io/openwrt/apk/${GITHUB_REF_NAME}/
+          (also \`apk/current/\`; public key at \`keys/usg-apk.pem\`). See \`docs/USG-PRO-4.md\`.
 
           Device profile: \`ubnt_usg-pro-4\`. Enable \`flow_offloading\` + \`flow_offloading_hw\`, then run the WQE↔netdev port-map check (RJ45 + SFP).
 

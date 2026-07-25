@@ -17,6 +17,9 @@ drop-in replacement for official OpenWrt releases.
   [packerlschupfer/octeon-flowtable](https://github.com/packerlschupfer/octeon-flowtable),
   a clean-room nftables flow-offload backend originally for Octeon+ CN50xx
   (EdgeRouter Lite 3). Adapted here for CN61xx on the USG-PRO-4.
+- **LuCI theme** — [ChesterGoodiny/luci-theme-proton2025](https://github.com/ChesterGoodiny/luci-theme-proton2025)
+  (Apache-2.0), vendored as `package/luci-theme-proton2025` submodule;
+  selected in the **router** CI image.
 
 **Docs:** [`docs/USG-PRO-4.md`](docs/USG-PRO-4.md) (changes, versioning,
 testing, packages, GitHub Pages). Agent notes: [`AGENTS.md`](AGENTS.md).

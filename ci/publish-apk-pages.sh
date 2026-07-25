@@ -169,6 +169,21 @@ apk add --allow-untrusted kmod-octeon-flowtable</pre>
 </html>
 HTML_EOF
 
+# Publish the APK public key so devices can trust the feed without
+# --allow-untrusted (also baked into CI-built images via base-files).
+if [ -f ci/keys/usg-apk-public.pem ]; then
+	mkdir -p "$OUT/keys"
+	cp ci/keys/usg-apk-public.pem "$OUT/keys/usg-apk.pem"
+elif [ -f "$OUT/../ci/keys/usg-apk-public.pem" ]; then
+	mkdir -p "$OUT/keys"
+	cp "$OUT/../ci/keys/usg-apk-public.pem" "$OUT/keys/usg-apk.pem"
+fi
+# When script is run from repo root after checkout:
+if [ ! -f "$OUT/keys/usg-apk.pem" ] && [ -f "$(dirname "$0")/keys/usg-apk-public.pem" ]; then
+	mkdir -p "$OUT/keys"
+	cp "$(dirname "$0")/keys/usg-apk-public.pem" "$OUT/keys/usg-apk.pem"
+fi
+
 touch "$OUT/.nojekyll"
 
 echo "Site root ready at $OUT"

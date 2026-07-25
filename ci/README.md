@@ -6,29 +6,21 @@ Used by [`.github/workflows/build-usg-pro-4.yml`](../.github/workflows/build-usg
 
 | Seed | Variant | Includes (beyond device defaults + offload) |
 |------|---------|-----------------------------------------------|
-| `config.seed` | **lean** | `conntrack`, `tcpdump` — minimal verify toolkit |
-| `config-router.seed` | **router** | lean + LuCI (HTTPS) + WireGuard |
+| `config.seed` | **lean** | conntrack, tcpdump |
+| `config-router.seed` | **router** | LuCI HTTPS, WireGuard, Tailscale, Proton2025 theme, mwan3, pbr, adblock-fast, https-dns-proxy, htop/nano/curl/iperf3 |
 
-Same device profile: `ubnt_usg-pro-4`. Variants, versioning
-(`v25.12-usg.N`), testing, and apk / GitHub Pages:
-[`docs/USG-PRO-4.md`](../docs/USG-PRO-4.md).
+Signing: both seeds set `CONFIG_SIGNED_PACKAGES` + `CONFIG_SIGN_EACH_PACKAGE`.
+CI injects `USG_APK_PRIVATE_KEY` + [`keys/usg-apk-public.pem`](keys/usg-apk-public.pem).
 
-## Files
+Theme submodule: `package/luci-theme-proton2025` →
+[ChesterGoodiny/luci-theme-proton2025](https://github.com/ChesterGoodiny/luci-theme-proton2025).
 
-| File | Purpose |
-|------|---------|
-| `config.seed` | Lean image seed |
-| `config-router.seed` | Router image seed |
-| `feeds.conf` | `packages` + `luci` only (no bare `#` lines) |
+Full docs: [`docs/USG-PRO-4.md`](../docs/USG-PRO-4.md).
 
 ## Triggers
 
-- `workflow_dispatch` (from the **default** branch) → artifacts
-- tag `v*` → build both variants + GitHub Release + **GitHub Pages apk feed**
-- **deploy-apk-pages** (manual) → republish Pages from an existing Release tag
+- `workflow_dispatch` (default branch) → artifacts
+- tag `v*` → lean + router Release + GitHub Pages apk feed
+- **deploy-apk-pages** → republish Pages from an existing Release
 
-Pages URL: https://halcycon.github.io/openwrt/  
-Publisher: [`publish-apk-pages.sh`](publish-apk-pages.sh)
-
-This repository **is** the OpenWrt tree, so the workflow builds in-place.
-Adapted from [packerlschupfer/octeon-flowtable](https://github.com/packerlschupfer/octeon-flowtable) CI.
+Pages: https://halcycon.github.io/openwrt/

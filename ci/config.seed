@@ -5,6 +5,9 @@ CONFIG_TARGET_octeon=y
 CONFIG_TARGET_octeon_generic=y
 CONFIG_TARGET_octeon_generic_DEVICE_ubnt_usg-pro-4=y
 
+CONFIG_SIGNED_PACKAGES=y
+CONFIG_SIGN_EACH_PACKAGE=y
+
 CONFIG_PACKAGE_kmod-octeon-flowtable=y
 CONFIG_PACKAGE_kmod-nft-offload=y
 CONFIG_PACKAGE_kmod-nf-flow=y

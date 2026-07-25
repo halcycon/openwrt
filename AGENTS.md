@@ -21,6 +21,7 @@ driver.
 |------|------------|
 | OpenWrt device support (`ubnt-e200`) | [codeberg.org/Shiz/openwrt](https://codeberg.org/Shiz/openwrt) — branch `device/ubnt-e200` |
 | Clean-room Octeon flow offload (CN50xx) | [github.com/packerlschupfer/octeon-flowtable](https://github.com/packerlschupfer/octeon-flowtable) |
+| LuCI theme Proton2025 (submodule) | [ChesterGoodiny/luci-theme-proton2025](https://github.com/ChesterGoodiny/luci-theme-proton2025) |
 | This mirror / CN61xx port | [github.com/halcycon/openwrt](https://github.com/halcycon/openwrt) |
 
 Remotes:

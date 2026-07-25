@@ -44,4 +44,3 @@ git-src
 *-session.txt
 *.log
 # Accidental nested clones under package/ (keep out of this tree)
-/package/luci-theme-proton2025/

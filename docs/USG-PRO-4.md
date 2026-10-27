@@ -21,6 +21,7 @@ On top of that, this mirror adds:
 | Hardware flow offload | `package/kernel/octeon-flowtable/`, staging patch `710-octeon-flowtable-hooks.patch` | Clean-room nftables offload (port of [packerlschupfer/octeon-flowtable](https://github.com/packerlschupfer/octeon-flowtable)) |
 | Offload tuning | `CVMSEG_SIZE=2`, cmdline `receive_group_order=1`, `kmod-octeon-flowtable` in `DEVICE_PACKAGES` | Match upstream offload requirements |
 | CI images | `.github/workflows/build-usg-pro-4.yml`, `ci/*.seed` | Build lean/router firmware + matching `.apk`s |
+| EdgeOS-style CLI (router) | submodule `package/confsh` → [halcycon/confsh](https://github.com/halcycon/confsh) | `configure` / `set` / `commit` workflow for users migrating off EdgeOS; standalone, works on any OpenWrt |
 
 Board: `ubnt,usg-pro-4` / `UBNT_E220` / CN6120. Config symbol:
 `CONFIG_TARGET_octeon_generic_DEVICE_ubnt_usg-pro-4=y` (not
@@ -82,7 +83,7 @@ octeon-flowtable: in-tree port of packerlschupfer/octeon-flowtable
 |--|----------|------------|
 | Seed | `ci/config.seed` | `ci/config-router.seed` |
 | Offload | yes | yes |
-| Extra | conntrack, tcpdump | LuCI (HTTPS) + WireGuard + Tailscale + Proton2025 theme + mwan3/pbr/adblock-fast/https-dns-proxy + htop/nano/curl/iperf3 |
+| Extra | conntrack, tcpdump | LuCI (HTTPS) + WireGuard + Tailscale + Proton2025 theme + mwan3/pbr/adblock-fast/https-dns-proxy + htop/nano/curl/iperf3 + confsh CLI |
 | Use | minimal / DIY | turnkey gateway (matches maintainer `.config` extras) |
 
 Same device profile. Neither is `CONFIG_ALL` (that would pull every feed
@@ -135,6 +136,26 @@ git submodule update --init --recursive
 ```
 
 CI checks out submodules automatically.
+
+### CLI: confsh (EdgeOS-style)
+
+In-tree as a **git submodule**, same pattern as Proton2025:
+
+- Path: `package/confsh` (package Makefile at `package/confsh/confsh/`)
+- Upstream: https://github.com/halcycon/confsh (GPL-2.0-only)
+- Selected in the **router** seed (`CONFIG_PACKAGE_confsh`)
+
+It is a standalone package (any OpenWrt 24.10+, `PKGARCH:=all`); this
+tree only pins a commit. Run `confsh` on the router, then `configure`,
+`set …`, `commit` / `commit-confirm`. Design and limits:
+[confsh docs/DESIGN.md](https://github.com/halcycon/confsh/blob/main/docs/DESIGN.md).
+
+Bump the pin after confsh changes:
+
+```bash
+git -C package/confsh pull origin main
+git add package/confsh && git commit -m "confsh: bump to <short-sha>"
+```
 
 ## How to test
 
@@ -400,4 +421,5 @@ manageable. Older tags’ feeds remain downloadable as Release tarballs
 - Device tree / board work: [Shiz/openwrt](https://codeberg.org/Shiz/openwrt)
 - Flow offload: [packerlschupfer/octeon-flowtable](https://github.com/packerlschupfer/octeon-flowtable)
 - LuCI theme Proton2025: [ChesterGoodiny/luci-theme-proton2025](https://github.com/ChesterGoodiny/luci-theme-proton2025) (Apache-2.0)
+- EdgeOS-style CLI: [halcycon/confsh](https://github.com/halcycon/confsh) (GPL-2.0-only)
 - CI patterns adapted from packerlschupfer’s `build-image.yml` / `ci/`

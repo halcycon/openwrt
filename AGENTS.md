@@ -22,6 +22,7 @@ driver.
 | OpenWrt device support (`ubnt-e200`) | [codeberg.org/Shiz/openwrt](https://codeberg.org/Shiz/openwrt) — branch `device/ubnt-e200` |
 | Clean-room Octeon flow offload (CN50xx) | [github.com/packerlschupfer/octeon-flowtable](https://github.com/packerlschupfer/octeon-flowtable) |
 | LuCI theme Proton2025 (submodule) | [ChesterGoodiny/luci-theme-proton2025](https://github.com/ChesterGoodiny/luci-theme-proton2025) |
+| EdgeOS-style CLI `confsh` (submodule `package/confsh`) | [halcycon/confsh](https://github.com/halcycon/confsh) — standalone; develop there, bump the pin here |
 | This mirror / CN61xx port | [github.com/halcycon/openwrt](https://github.com/halcycon/openwrt) |
 
 Remotes:
@@ -82,6 +83,7 @@ In-tree offload pieces: `package/kernel/octeon-flowtable/`,
 | OpenWrt tree | GPL-2.0-only (`COPYING`) |
 | Kernel + staging patches | GPL-2.0 |
 | `kmod-octeon-flowtable` | GPL-2.0 (upstream + kernel module) |
+| `confsh` (submodule) | GPL-2.0-only |
 | `AGENTS.md`, `docs/USG-PRO-4.md`, README fork notes | MIT (docs only) |
 
 ## Agent / contributor workflow

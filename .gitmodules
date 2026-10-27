@@ -1,3 +1,6 @@
 [submodule "package/luci-theme-proton2025"]
 	path = package/luci-theme-proton2025
 	url = https://github.com/ChesterGoodiny/luci-theme-proton2025.git
+[submodule "package/confsh"]
+	path = package/confsh
+	url = https://github.com/halcycon/confsh.git

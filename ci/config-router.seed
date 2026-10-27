@@ -3,7 +3,7 @@
 #
 # Includes lean toolkit + LuCI (HTTPS) + WireGuard + Proton2025 theme +
 # common gateway apps from the maintainer .config (adblock, DoH, mwan3, pbr,
-# diagnostics). Not CONFIG_ALL.
+# diagnostics) + confsh (EdgeOS-style CLI). Not CONFIG_ALL.
 
 CONFIG_TARGET_octeon=y
 CONFIG_TARGET_octeon_generic=y
@@ -47,3 +47,6 @@ CONFIG_PACKAGE_htop=y
 CONFIG_PACKAGE_nano=y
 CONFIG_PACKAGE_curl=y
 CONFIG_PACKAGE_iperf3=y
+
+# --- EdgeOS-style CLI (submodule package/confsh, halcycon/confsh) ---
+CONFIG_PACKAGE_confsh=y

@@ -142,7 +142,7 @@ CI checks out submodules automatically.
 In-tree as a **git submodule**, same pattern as Proton2025:
 
 - Path: `package/confsh` (package Makefile at `package/confsh/confsh/`)
-- Upstream: https://github.com/halcycon/confsh (GPL-2.0-only)
+- Upstream: https://github.com/halcycon/confsh (MIT)
 - Selected in the **router** seed (`CONFIG_PACKAGE_confsh`)
 
 It is a standalone package (any OpenWrt 24.10+, `PKGARCH:=all`); this
@@ -421,5 +421,5 @@ manageable. Older tags’ feeds remain downloadable as Release tarballs
 - Device tree / board work: [Shiz/openwrt](https://codeberg.org/Shiz/openwrt)
 - Flow offload: [packerlschupfer/octeon-flowtable](https://github.com/packerlschupfer/octeon-flowtable)
 - LuCI theme Proton2025: [ChesterGoodiny/luci-theme-proton2025](https://github.com/ChesterGoodiny/luci-theme-proton2025) (Apache-2.0)
-- EdgeOS-style CLI: [halcycon/confsh](https://github.com/halcycon/confsh) (GPL-2.0-only)
+- EdgeOS-style CLI: [halcycon/confsh](https://github.com/halcycon/confsh) (MIT)
 - CI patterns adapted from packerlschupfer’s `build-image.yml` / `ci/`

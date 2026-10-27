@@ -83,7 +83,7 @@ In-tree offload pieces: `package/kernel/octeon-flowtable/`,
 | OpenWrt tree | GPL-2.0-only (`COPYING`) |
 | Kernel + staging patches | GPL-2.0 |
 | `kmod-octeon-flowtable` | GPL-2.0 (upstream + kernel module) |
-| `confsh` (submodule) | GPL-2.0-only |
+| `confsh` (submodule) | MIT |
 | `AGENTS.md`, `docs/USG-PRO-4.md`, README fork notes | MIT (docs only) |
 
 ## Agent / contributor workflow

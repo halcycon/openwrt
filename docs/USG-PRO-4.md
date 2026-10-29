@@ -48,6 +48,7 @@ Examples:
 |-----|---------|
 | `v25.12-usg.1` | First public USG build based on the OpenWrt **25.12** line |
 | `v25.12-usg.2` | Signed apks; expanded **router** seed (Proton2025, Tailscale, mwan3/…); RJ45 port-map logged |
+| `v25.12-usg.3` | octeon-flowtable v0.2.0 (PPPoE offload); confsh CLI in **router** |
 | `v26.xx-usg.1` | First build after rebasing onto a newer OpenWrt line |
 
 Rules:
@@ -99,10 +100,18 @@ package).
   WireGuard. No Proton2025 / Tailscale / mwan3 / adblock yet; apks were
   unsigned.
 
-**`v25.12-usg.2`** (this tag): rebuild with apk signing key, expanded
+**`v25.12-usg.2`**: rebuild with apk signing key, expanded
 `ci/config-router.seed` (Proton2025, Tailscale, mwan3/pbr/adblock-fast/
 https-dns-proxy, htop/nano/curl/iperf3), and docs front-page updates.
 Hardware validation: GW1 **RJ45** WQE↔netdev pass logged; SFP still open.
+
+**`v25.12-usg.3`** (this tag): `kmod-octeon-flowtable` synced to upstream
+v0.2.0, adding hardware offload over **PPPoE** (also PPPoE-over-VLAN);
+**confsh** v0.3.0 (EdgeOS-style CLI, submodule `package/confsh`) in the
+router image. PPPoE offload is built and upstream-benchmarked on CN50xx
+but **not yet validated on USG hardware** — see
+[PPPoE WAN](#pppoe-wan-from-octeon-flowtable-v020). SFP port-map check
+still open.
 
 ### Recommended extras (now in router seed)
 

@@ -65,6 +65,12 @@ In-tree offload pieces: `package/kernel/octeon-flowtable/`,
 `target/linux/octeon/patches-*/710-octeon-flowtable-hooks.patch`,
 `CVMSEG_SIZE=2`, cmdline `receive_group_order=1`.
 
+`src/octeon_flowtable.c` is upstream's file (version in the package
+`PKG_VERSION`) plus only header-comment and `MODULE_*` edits for
+CN61xx. To sync a new upstream release: diff upstream's previous tag
+against ours, apply that patch to the new upstream file, bump
+`PKG_VERSION`, and check whether upstream changed the kernel hook patch.
+
 ## What must not be committed / uploaded to GitHub
 
 | Path / pattern | Why |

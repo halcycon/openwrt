@@ -18,7 +18,7 @@ On top of that, this mirror adds:
 | Change | Where | Why |
 |--------|-------|-----|
 | Factory EEPROM MACs on first boot | `target/linux/octeon/base-files/etc/uci-defaults/99-usg-pro-4-macs` | Ports get sticker/UniFi MACs (`lan1`+0 … `wan2`+3), not random |
-| Hardware flow offload | `package/kernel/octeon-flowtable/`, staging patch `710-octeon-flowtable-hooks.patch` | Clean-room nftables offload (port of [packerlschupfer/octeon-flowtable](https://github.com/packerlschupfer/octeon-flowtable)) |
+| Hardware flow offload | `package/kernel/octeon-flowtable/`, staging patch `710-octeon-flowtable-hooks.patch` | Clean-room nftables offload (port of [packerlschupfer/octeon-flowtable](https://github.com/packerlschupfer/octeon-flowtable) v0.2.0): IPv4/IPv6, NAT, 802.1Q/QinQ, PPPoE (also PPPoE-over-VLAN) |
 | Offload tuning | `CVMSEG_SIZE=2`, cmdline `receive_group_order=1`, `kmod-octeon-flowtable` in `DEVICE_PACKAGES` | Match upstream offload requirements |
 | CI images | `.github/workflows/build-usg-pro-4.yml`, `ci/*.seed` | Build lean/router firmware + matching `.apk`s |
 | EdgeOS-style CLI (router) | submodule `package/confsh` → [halcycon/confsh](https://github.com/halcycon/confsh) | `configure` / `set` / `commit` workflow for users migrating off EdgeOS; standalone, works on any OpenWrt |
@@ -242,8 +242,37 @@ echo 0 > /sys/module/octeon_flowtable/parameters/verbose
 | Date | Unit | Path | `tx_ok` Δ | `r_miss` | `r_ipoff` | `tx_fail` / `aqm_drops` | Result |
 |------|------|------|-----------|----------|-----------|-------------------------|--------|
 | 2026-07-25 | GW1 | **RJ45** only — forwarded load (iperf3) | +180 874 (470 079 456 → 470 260 330) | rose (background OK) | 0 | 0 / 0 | **Pass** (fast path engaged) |
+| — | — | **PPPoE** WAN (octeon-flowtable v0.2.0) | — | — | — | — | Not yet tested |
 
 SFP still needs the same check on GW1 (or another unit).
+
+#### PPPoE WAN (from octeon-flowtable v0.2.0)
+
+Flows leaving through a PPPoE WAN (including PPPoE over a VLAN, as on
+many UK FTTP/FTTC lines) are offloaded too. Nothing extra to enable:
+with `flow_offloading_hw`, fw4 puts the PPPoE interface's underlying
+Ethernet device in the hardware flowtable. Upstream measured ~915/925
+Mbit/s up/down on an ERLite; **not yet verified on CN61xx**.
+
+Same procedure as above, with a forwarded download over the PPPoE WAN,
+plus two PPPoE counters:
+
+```text
+cat "$P/tx_ok" "$P/r_ppp" "$P/pppoe_sessions"
+```
+
+| Counter | Expect |
+|---------|--------|
+| `tx_ok` | rising under load (fast path engaged) |
+| `pppoe_sessions` | ≥ 1 while a PPPoE flow is offloaded |
+| `r_ppp` | flat; rising means PPPoE frames are being refused (wrong session/peer MAC, or the CN61xx parser behaves differently from CN50xx) — file an issue |
+
+Caveats (upstream): the fast-path MTU is the port MTU minus 8 (1492 on
+a 1500 port), so a `pppoe` interface configured with a lower MTU isn't
+honoured by the fast path; IPv6 over PPPoE is implemented but not yet
+bench-tested. No PPPoE WAN to hand? Upstream's
+[`tests/pppoe-isp.sh`](https://github.com/packerlschupfer/octeon-flowtable/blob/main/src/octeon_flowtable/tests/pppoe-isp.sh)
+turns a Linux box into a fake PPPoE ISP on a VLAN.
 
 ### 3. Security / hardening checklist
 

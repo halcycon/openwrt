@@ -10,6 +10,8 @@ include $(TOPDIR)/rules.mk
 include $(INCLUDE_DIR)/kernel.mk
 
 PKG_NAME:=octeon-flowtable
+# Upstream release this source tracks (packerlschupfer/octeon-flowtable).
+PKG_VERSION:=0.2.0
 PKG_RELEASE:=1
 PKG_LICENSE:=GPL-2.0
 PKG_MAINTAINER:=USG-PRO-4 OpenWrt <https://github.com/halcycon/openwrt>
@@ -25,10 +27,10 @@ define KernelPackage/octeon-flowtable
 endef
 
 define KernelPackage/octeon-flowtable/description
-  WQE-level RX hook + in-buffer NAT/VLAN (retag/push/pop/QinQ) rewrite + PKO
-  transmit for Cavium Octeon (CN50xx / CN61xx). Bypasses the Linux stack for
-  forwarded flows claimed by nftables hardware flow offload; misses fall
-  through to normal routing.
+  WQE-level RX hook + in-buffer NAT/VLAN (retag/push/pop/QinQ)/PPPoE
+  (encap/decap, also over VLAN) rewrite + PKO transmit for Cavium Octeon
+  (CN50xx / CN61xx). Bypasses the Linux stack for forwarded flows claimed by
+  nftables hardware flow offload; misses fall through to normal routing.
 
   Requires the staging-driver hook patch
   target/linux/octeon/patches-*/710-octeon-flowtable-hooks.patch.
